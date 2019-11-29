@@ -24,9 +24,9 @@ _par.add_argument("--model" 		, type = str , default = "naive_bert" ,
 
 
 #training arguments
-_par.add_argument("--batch_size" 	, type = int , default = 32)
+_par.add_argument("--batch_size" 	, type = int , default = 8)
 _par.add_argument("--epoch_numb" 	, type = int , default = 20)
-_par.add_argument("--lr" 			, type = float , default = 1e-3)
+_par.add_argument("--lr" 			, type = float , default = 1e-4)
 _par.add_argument("--fine_tune" 	, action = "store_true" , default = False)
 
 

@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import BertModel , BertTokenizer
 import pdb
-
+import math
 
 class Model(nn.Module):
 	def __init__(self , bert_type = "bert-base-uncased" , relation_typs = 7):
@@ -49,8 +49,8 @@ class Model(nn.Module):
 		q = self.wq(ent_encode)
 		k = self.wk(ent_encode)
 
-		alpha = q.view(bs,1,ne,d) * k.view(bs,ne,1,d) #(bs , n , n , d)
-		alpha = tc.sigmoid(self.ln(alpha))
+		alpha = q.view(bs,ne,1,d) * k.view(bs,1,ne,d) #(bs , n , n , d)
+		alpha = self.ln(alpha)
 		alpha = alpha * ent_mask.view(bs,ne,1,1) * ent_mask.view(bs,1,ne,1)
 
 		return alpha
@@ -61,8 +61,8 @@ class Model(nn.Module):
 		bs , ne , _ , d = pred.size()
 
 		negative_rate = 0.5
-		tot_pos_loss = None
-		tot_neg_loss = None
+		tot_pos_loss = 0
+		tot_neg_loss = 0
 
 		for _b in range(bs):
 
@@ -75,12 +75,21 @@ class Model(nn.Module):
 
 			pos_mask = (rel_map != self.no_rel)
 
-			b_pred = pred[_b].view(-1,self.relation_typs) #(ne*ne , rel_types)
+			b_pred = -tc.log_softmax( pred[_b].view(-1,self.relation_typs) , dim = -1) #(ne*ne , rel_types)
 			b_pred = b_pred[tc.arange(ne*ne) , rel_map.view(-1)].view(ne,ne)
-			loss_map = -tc.log(b_pred)
+			loss_map = b_pred
 
-			pos_loss = loss_map.masked_select(pos_mask * pad_mask).mean()
+			if len(anss[_b]) > 0:
+				pos_loss = loss_map.masked_select(pos_mask * pad_mask).mean()
+			else:
+				pos_loss = 0. #or it will be nan
 			neg_loss = loss_map.masked_select((~pos_mask) * pad_mask).mean()
+
+			try:
+				assert not math.isnan(pos_loss)
+				assert not math.isnan(neg_loss)
+			except Exception:
+				pdb.set_trace()
 
 			tot_pos_loss = pos_loss if tot_pos_loss is None else tot_pos_loss + pos_loss
 			tot_neg_loss = neg_loss if tot_neg_loss is None else tot_neg_loss + neg_loss
@@ -88,5 +97,5 @@ class Model(nn.Module):
 		tot_pos_loss /= bs
 		tot_neg_loss /= bs
 
-		return tot_pos_loss * (1-negative_rate) + tot_neg_loss
+		return tot_pos_loss * (1-negative_rate) + tot_neg_loss * negative_rate
 

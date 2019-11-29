@@ -21,6 +21,7 @@ def train(dataset):
 	for epoch_id in range(C.epoch_numb):
 
 		pbar = tqdm(range(batch_numb) , ncols = 70)
+		avg_loss = 0
 		for batch_id in pbar:
 			data = dataset[batch_id * C.batch_size : (batch_id+1) * C.batch_size]
 
@@ -37,14 +38,21 @@ def train(dataset):
 			pred = model(sents , ents)
 
 			loss = model.loss(pred , anss , ents)
-			pdb.set_trace()
+
+			try:
+				assert loss.item() == loss.item()
+			except Exception:
+				pdb.set_trace()
 
 			optimizer.zero_grad()
 			loss.backward()
 			optimizer.step()
 
+			avg_loss += float(loss)
+
 			pbar.set_description_str("Epoch %d" % (epoch_id + 1))
-			pbar.set_postfix_str("loss : %.4f" % float(loss))
+			pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
+		print ("Epoch %d ended. avg_loss = %.4f" % (epoch_id + 1 , avg_loss / batch_numb))
 
 	return model
 
