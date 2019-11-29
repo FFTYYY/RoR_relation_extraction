@@ -2,12 +2,14 @@ from config import C
 import os , sys
 import os.path as path
 import pdb
-import xml.sax
+from transformers import BertModel , BertTokenizer
+
 
 class Entity:
 	def __init__(self , start_pos , end_pos , name):
 		self.s = start_pos
 		self.e = end_pos
+		self.name = name
 
 class Relation:
 	def __init__(self , ent_a , ent_b , type):
@@ -20,10 +22,24 @@ class Data:
 		self.text_id = text_id
 		self.title = title.strip()
 		self.abs = abstract.strip()
+		self.ents = ents
 
 		self.ans = []
 
+		self.ent_names = [x.name for x in self.ents]
+
+	def ent_name2id(self , ent):
+		return self.ent_names.index(ent)
+	def id2ent_name(self , ent_id):
+		return self.ent_names[ent_id]
+
+
+
 relations = set()
+def rel2id(rel):
+	return relations.index(rel)
+def id2rel(i):
+	return relations[i]
 
 def parse_a_text_file(file_path):
 	'''看起来还行'''
@@ -36,7 +52,7 @@ def parse_a_text_file(file_path):
 	datas = {}
 	for x in cont:
 
-		x = x.strip()
+		x = x.strip().replace("\n" , " ").replace("\t" , " ")
 		x = x[10:] #remove  <text id=\"
 		text_id , x = x[:8] , x[8:] #text id 一定是XXX-XXXX
 
@@ -122,7 +138,76 @@ def parse_a_key_file(datas , file_path):
 
 	return datas 
 
+bert_type = "bert-base-uncased"
+tokenizer = BertTokenizer.from_pretrained(bert_type)
+def bertize(data):
+
+	cont = data.abs
+	tok_abs = ["[CLS]"] + tokenizer.tokenize(cont) + ["[SEP]"]
+
+	for x in data.ents:
+		guess_start = x.s - cont[:x.s].count(" ") + 5 #纯字母版本下的位置（+5是因为[CLS]）
+		guess_end   = x.e - cont[:x.e].count(" ") + 5 #纯字母版本下的位置（+5是因为[CLS]）
+
+		new_s = -1
+		new_e = -1
+		l = 0
+		r = 0
+		for i in range(len(tok_abs)):
+			l = r
+			r = l + len(tok_abs[i]) - tok_abs[i].count("##")*2
+			if l <= guess_start and guess_start < r:
+				new_s = i
+			if l <= guess_end and guess_end < r:
+				new_e = i
+
+		try:
+			assert new_s >= 0 and new_e >= 0		
+		except Exception:
+			print ("bad bertize")
+			pdb.set_trace()
+
+		old_s , x.s = x.s , new_s
+		old_e , x.e = x.e , new_e
+
+		try:
+			assert "".join(tok_abs[new_s : new_e]).replace("##" , "").lower() == cont[old_s : old_e].replace(" ","").lower()
+		except Exception:
+			print ("bad bertize")
+			pdb.set_trace()
+
+	data.abs = tok_abs
+
+	#pdb.set_trace()
+
+	return data
+
+def numberize(data):
+	data.abs = tokenizer.convert_tokens_to_ids(data.abs)
+	for x in data.ans:
+		x.type = rel2id(x.type)
+		x.u = data.ent_name2id(x.u)
+		x.v = data.ent_name2id(x.v)
+	return data
+
+_cnt = 0
+def cut(data):
+	global _cnt
+	if len(data.abs) >= 512:
+		#print ("abs too long")
+		data.abs = data.abs[:512]
+
+	for x in data.ents:
+		if x.s >= 512 or x.e >= 512:
+			#pdb.set_trace()
+			#print ("ent too long")
+			return None
+			#assert False
+	return data
+
 def run(data_path):
+
+	global relations
 
 	train_name 		= "1.1.text.xml"
 	test_name 		= "2.test.text.xml"
@@ -139,9 +224,39 @@ def run(data_path):
 	train_data 	= parse_a_key_file(train_data , train_key_name)
 	test_data 	= parse_a_key_file(test_data , test_key_name)
 
-	pdb.set_trace()
+	for name , data in train_data.items():
+		train_data[name] = bertize(data)
+	for name , data in test_data.items():
+		test_data[name]  = bertize(data)
 
-	return train_data
+	relations = list(relations)
+
+	for name , data in train_data.items():
+		train_data[name] = numberize(data)
+	for name , data in test_data.items():
+		test_data[name]  = numberize(data)
+
+	for name , data in train_data.items():
+		got = cut(data)
+		if got is not None:
+			train_data[name] = got			
+		else:
+			print ("*** droped one instance in train because too long")
+
+	for name , data in test_data.items():
+		got = cut(data)
+		if got is not None:
+			test_data[name] = got
+		else:
+			print ("*** droped one instance in test because too long")
+
+
+	#listize
+	train_data = [d for _ , d in train_data.items()]
+	test_data = [d for _ , d in test_data.items()]
+
+
+	return train_data , test_data
 
 
 if __name__ == "__main__":

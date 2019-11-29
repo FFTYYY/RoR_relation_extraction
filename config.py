@@ -13,7 +13,22 @@ _par = argparse.ArgumentParser()
 
 #dataloader
 _par.add_argument("--data_path" 	, type = str , default = "./semeval_2018_task7/")
-_par.add_argument("--force_reprocess" 	, action = "store_true", default = False)
+
+#model selection
+_par.add_argument("--model" 		, type = str , default = "naive_bert" , 
+	choices = [
+		"naive_bert" , 
+])
+
+#model structure 
+
+
+#training arguments
+_par.add_argument("--batch_size" 	, type = int , default = 32)
+_par.add_argument("--epoch_numb" 	, type = int , default = 20)
+_par.add_argument("--lr" 			, type = float , default = 1e-3)
+_par.add_argument("--fine_tune" 	, action = "store_true" , default = False)
+
 
 _par.add_argument("--test_mode" 	, action = "store_true" , default = False)
 
