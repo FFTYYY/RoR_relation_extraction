@@ -12,7 +12,11 @@ _par = argparse.ArgumentParser()
 #---------------------------------------------------------------------------------------------------
 
 #dataloader
-_par.add_argument("--data_path" 	, type = str , default = "./semeval_2018_task7/")
+_par.add_argument("--train_text" 	, type = str , default = "./semeval_2018_task7/1.1.text.xml")
+_par.add_argument("--train_rels" 	, type = str , default = "./semeval_2018_task7/1.1.relations.txt")
+_par.add_argument("--test_text" 	, type = str , default = "./semeval_2018_task7/2.test.text.xml")
+_par.add_argument("--test_rels" 	, type = str , default = "./semeval_2018_task7/keys.test.2.txt")
+_par.add_argument("--test_script" 	, type = str , default = "./semeval_2018_task7/semeval2018_task7_scorer-v1.2.pl")
 
 #model selection
 _par.add_argument("--model" 		, type = str , default = "naive_bert" , 
@@ -22,6 +26,7 @@ _par.add_argument("--model" 		, type = str , default = "naive_bert" ,
 
 #model structure 
 
+_par.add_argument("--dropout" 		, type = float , default = 0.7)
 
 #training arguments
 _par.add_argument("--batch_size" 	, type = int , default = 8)

@@ -6,18 +6,24 @@ import pdb
 import math
 
 class Model(nn.Module):
-	def __init__(self , bert_type = "bert-base-uncased" , relation_typs = 7):
+	def __init__(self , bert_type = "bert-base-uncased" , relation_typs = 7 , dropout = 0.0):
 		super().__init__()
 
 		self.d_model = 768
 		self.relation_typs = relation_typs
 		self.no_rel = relation_typs - 1
+		self.dropout = dropout
+
+		self.ent_emb = nn.Embedding(num_embeddings = 2 , embedding_dim = self.d_model)
 
 		self.bert = BertModel.from_pretrained(bert_type).cuda()
+		self.bertdrop = nn.Dropout(self.dropout)
 
-		self.wq = nn.Linear(self.d_model , self.d_model)
-		self.wk = nn.Linear(self.d_model , self.d_model)
-		self.ln = nn.Linear(self.d_model , relation_typs)
+		self.wq = nn.Linear(self.d_model , 2 * self.d_model)
+		self.wk = nn.Linear(self.d_model , 2 * self.d_model)
+		self.drop = nn.Dropout(self.dropout)
+		self.ln1 = nn.Linear(2 * self.d_model , 2 * self.d_model)
+		self.lno = nn.Linear(2 * self.d_model , relation_typs)
 
 	def forward(self , sents , ents):
 
@@ -26,18 +32,25 @@ class Model(nn.Module):
 		ne = max([len(x) for x in ents])
 		d = self.d_model
 
+		ent_index = s.new_zeros(s.size())
+		for _b in range(len(ents)):
+			for u,v in ents[_b]:
+				ent_index[_b , u:v] = 1
+
+
 		segm_index = s.new_zeros(s.size())
 		posi_index = tc.arange(n).view(1,n).expand(bs , n).cuda()
 		sent_mask  = (sents != 0)
 
 		outputs  = self.bert(
 			s , 
-			token_type_ids = segm_index , 
+			token_type_ids = ent_index , 
 			position_ids   = posi_index ,
 			attention_mask = sent_mask , 
 		) #(n , d)
 
 		bert_encoded = outputs[0] #(bs , n , d)
+		bert_encoded = self.bertdrop(bert_encoded)
 
 		ent_mask = sent_mask.new_zeros( bs , ne ).float()
 		ent_encode = bert_encoded.new_zeros( bs , ne , d )
@@ -48,9 +61,12 @@ class Model(nn.Module):
 
 		q = self.wq(ent_encode)
 		k = self.wk(ent_encode)
+		alpha = q.view(bs,ne,1,2*d) + k.view(bs,1,ne,2*d) #(bs , n , n , d)
+		alpha = F.relu(self.drop(alpha))
+		alpha = F.relu(self.ln1(alpha))
+		alpha = self.lno(alpha)
 
-		alpha = q.view(bs,ne,1,d) * k.view(bs,1,ne,d) #(bs , n , n , d)
-		alpha = self.ln(alpha)
+
 		alpha = alpha * ent_mask.view(bs,ne,1,1) * ent_mask.view(bs,1,ne,1)
 
 		return alpha
@@ -60,10 +76,11 @@ class Model(nn.Module):
 		
 		bs , ne , _ , d = pred.size()
 
-		negative_rate = 0.5
-		tot_pos_loss = 0
-		tot_neg_loss = 0
+		class_weight = [1,1,1,1,1,1,5]
+		tot_loss_class = [0.] * self.relation_typs
+		tot_show_class = [0 ] * self.relation_typs
 
+		pred = -tc.log_softmax( pred , dim = -1)
 		for _b in range(bs):
 
 			pad_mask = tc.zeros(ne , ne).cuda().bool()
@@ -73,29 +90,65 @@ class Model(nn.Module):
 			for u , v , t in anss[_b]:
 				rel_map[u , v] = t
 
-			pos_mask = (rel_map != self.no_rel)
+			loss_map = pred[_b].view(ne*ne,-1)[tc.arange(ne*ne) , rel_map.view(-1)].view(ne,ne)
+			for c in range(self.relation_typs):
 
-			b_pred = -tc.log_softmax( pred[_b].view(-1,self.relation_typs) , dim = -1) #(ne*ne , rel_types)
-			b_pred = b_pred[tc.arange(ne*ne) , rel_map.view(-1)].view(ne,ne)
-			loss_map = b_pred
+				c_mask = (rel_map == c)
+				c_loss = loss_map.masked_select(c_mask & pad_mask)
 
-			if len(anss[_b]) > 0:
-				pos_loss = loss_map.masked_select(pos_mask * pad_mask).mean()
-			else:
-				pos_loss = 0. #or it will be nan
-			neg_loss = loss_map.masked_select((~pos_mask) * pad_mask).mean()
+				try:
+					assert (c_loss == c_loss).all()
+				except AssertionError:
+					pdb.set_trace()
+
+				tot_loss_class[c] += c_loss.sum()
+				tot_show_class[c] += len(c_loss)
+
+		tot_loss = 0.
+		for c in range(self.relation_typs):
+			if tot_show_class[c] > 0:
+				tot_loss = tot_loss + (tot_loss_class[c] / tot_show_class[c]) * class_weight[c]
+		tot_loss /= sum(class_weight)
+
+		return tot_loss
+
+	def generate(self , pred , data_ent , rel_id2name , fil):
+		
+		def add_rel(_b , i , j , t , fil):
+			reverse = False
+			if i > j:
+				i , j = j , i
+				reverse = True
+			t = rel_id2name(t)
+			fil.write("%s(%s,%s%s)\n" % (
+				t , 
+				data_ent[_b][i].name , 
+				data_ent[_b][j].name , 
+				",REVERSE" if reverse else "" , 
+			))
+
+		bs , ne , _ , d = pred.size()
+
+		pred = tc.softmax(pred , dim = -1)
+		for _b in range(bs):
+			pred_map = pred[_b].max(-1)[1] #(ne , ne)
+
+			for i in range(len(data_ent[_b])):
+				for j in range(len(data_ent[_b])):
+					if pred[_b,i,j,pred_map[i,j]] < 0.9:
+						pred_map[i,j] = self.no_rel
 
 			try:
-				assert not math.isnan(pos_loss)
-				assert not math.isnan(neg_loss)
-			except Exception:
+				assert (pred_map == pred_map).all()
+			except AssertionError:
 				pdb.set_trace()
 
-			tot_pos_loss = pos_loss if tot_pos_loss is None else tot_pos_loss + pos_loss
-			tot_neg_loss = neg_loss if tot_neg_loss is None else tot_neg_loss + neg_loss
+			for i in range(len(data_ent[_b])):
+				for j in range(i):
+					if pred_map[i , j] != self.no_rel:
+						add_rel(_b,i,j,int(pred_map[i , j]),fil)
+					if pred_map[j , i] != self.no_rel:
+						add_rel(_b,j,i,int(pred_map[j , i]),fil)
 
-		tot_pos_loss /= bs
-		tot_neg_loss /= bs
-
-		return tot_pos_loss * (1-negative_rate) + tot_neg_loss * negative_rate
+		
 

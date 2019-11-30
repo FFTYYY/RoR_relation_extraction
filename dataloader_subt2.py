@@ -130,7 +130,7 @@ def parse_a_key_file(datas , file_path):
 
 		try:
 			assert ent_b.split(".")[0] == text_id
-		except Exception:
+		except AssertionError:
 			pdb.set_trace()
 
 		datas[text_id].ans.append(Relation(ent_a , ent_b , rel))
@@ -163,7 +163,7 @@ def bertize(data):
 
 		try:
 			assert new_s >= 0 and new_e >= 0		
-		except Exception:
+		except AssertionError:
 			print ("bad bertize")
 			pdb.set_trace()
 
@@ -172,7 +172,7 @@ def bertize(data):
 
 		try:
 			assert "".join(tok_abs[new_s : new_e]).replace("##" , "").lower() == cont[old_s : old_e].replace(" ","").lower()
-		except Exception:
+		except AssertionError:
 			print ("bad bertize")
 			pdb.set_trace()
 
@@ -191,38 +191,32 @@ def numberize(data):
 	return data
 
 _cnt = 0
-def cut(data):
+def cut(data , dtype = "train"):
 	global _cnt
 	if len(data.abs) >= 512:
 		#print ("abs too long")
 		data.abs = data.abs[:512]
 
+	to_remove = []
 	for x in data.ents:
 		if x.s >= 512 or x.e >= 512:
 			#pdb.set_trace()
-			#print ("ent too long")
-			return None
+			print ("Droped one entity because too long in %s" % dtype)
+			to_remove.append(x)
+			#return None
 			#assert False
+	for x in to_remove:
+		data.ents.remove(x)
 	return data
 
-def run(data_path):
+def run(train_text , train_rels , test_text , test_rels):
 
 	global relations
 
-	train_name 		= "1.1.text.xml"
-	test_name 		= "2.test.text.xml"
-	train_key_name  = "1.1.relations.txt"
-	test_key_name 	= "keys.test.2.txt"
-
-	train_name 		= os.path.join(data_path , train_name)
-	test_name 		= os.path.join(data_path , test_name)
-	train_key_name 	= os.path.join(data_path , train_key_name)
-	test_key_name 	= os.path.join(data_path , test_key_name)
-
-	train_data 	= parse_a_text_file(train_name)
-	test_data 	= parse_a_text_file(test_name)
-	train_data 	= parse_a_key_file(train_data , train_key_name)
-	test_data 	= parse_a_key_file(test_data , test_key_name)
+	train_data 	= parse_a_text_file(train_text)
+	test_data 	= parse_a_text_file(test_text)
+	train_data 	= parse_a_key_file(train_data , train_rels)
+	test_data 	= parse_a_key_file(test_data , test_rels)
 
 	for name , data in train_data.items():
 		train_data[name] = bertize(data)
@@ -237,14 +231,14 @@ def run(data_path):
 		test_data[name]  = numberize(data)
 
 	for name , data in train_data.items():
-		got = cut(data)
+		got = cut(data , "train")
 		if got is not None:
 			train_data[name] = got			
 		else:
 			print ("*** droped one instance in train because too long")
 
 	for name , data in test_data.items():
-		got = cut(data)
+		got = cut(data , "test")
 		if got is not None:
 			test_data[name] = got
 		else:
@@ -260,4 +254,4 @@ def run(data_path):
 
 
 if __name__ == "__main__":
-	run(data_path = C.data_path)
+	run(C.train_text , C.train_rels , C.test_text , C.test_rels)
