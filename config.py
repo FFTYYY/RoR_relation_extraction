@@ -22,15 +22,16 @@ _par.add_argument("--test_script" 	, type = str , default = "./semeval_2018_task
 _par.add_argument("--model" 		, type = str , default = "naive_bert" , 
 	choices = [
 		"naive_bert" , 
+		"graph_trans" , 
 ])
 
 #model structure 
 
-_par.add_argument("--dropout" 		, type = float , default = 0.7)
+_par.add_argument("--dropout" 		, type = float , default = 0.0)
 
 #training arguments
 _par.add_argument("--batch_size" 	, type = int , default = 8)
-_par.add_argument("--epoch_numb" 	, type = int , default = 20)
+_par.add_argument("--epoch_numb" 	, type = int , default = 50)
 _par.add_argument("--lr" 			, type = float , default = 1e-4)
 _par.add_argument("--fine_tune" 	, action = "store_true" , default = False)
 

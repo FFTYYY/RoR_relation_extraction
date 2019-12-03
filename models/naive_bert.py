@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from transformers import BertModel , BertTokenizer
 import pdb
 import math
+from .loss_func import *
 
 class Model(nn.Module):
 	def __init__(self , bert_type = "bert-base-uncased" , relation_typs = 7 , dropout = 0.0):
@@ -71,47 +72,6 @@ class Model(nn.Module):
 
 		return alpha
 
-
-	def loss(self , pred , anss , ents):
-		
-		bs , ne , _ , d = pred.size()
-
-		class_weight = [1,1,1,1,1,1,5]
-		tot_loss_class = [0.] * self.relation_typs
-		tot_show_class = [0 ] * self.relation_typs
-
-		pred = -tc.log_softmax( pred , dim = -1)
-		for _b in range(bs):
-
-			pad_mask = tc.zeros(ne , ne).cuda().bool()
-			pad_mask[:len(ents[_b]) , :len(ents[_b])] = 1
-
-			rel_map = tc.zeros(ne , ne).cuda().long() + self.no_rel
-			for u , v , t in anss[_b]:
-				rel_map[u , v] = t
-
-			loss_map = pred[_b].view(ne*ne,-1)[tc.arange(ne*ne) , rel_map.view(-1)].view(ne,ne)
-			for c in range(self.relation_typs):
-
-				c_mask = (rel_map == c)
-				c_loss = loss_map.masked_select(c_mask & pad_mask)
-
-				try:
-					assert (c_loss == c_loss).all()
-				except AssertionError:
-					pdb.set_trace()
-
-				tot_loss_class[c] += c_loss.sum()
-				tot_show_class[c] += len(c_loss)
-
-		tot_loss = 0.
-		for c in range(self.relation_typs):
-			if tot_show_class[c] > 0:
-				tot_loss = tot_loss + (tot_loss_class[c] / tot_show_class[c]) * class_weight[c]
-		tot_loss /= sum(class_weight)
-
-		return tot_loss
-
 	def generate(self , pred , data_ent , rel_id2name , fil):
 		
 		def add_rel(_b , i , j , t , fil):
@@ -130,13 +90,19 @@ class Model(nn.Module):
 		bs , ne , _ , d = pred.size()
 
 		pred = tc.softmax(pred , dim = -1)
+
 		for _b in range(bs):
-			pred_map = pred[_b].max(-1)[1] #(ne , ne)
 
 			for i in range(len(data_ent[_b])):
 				for j in range(len(data_ent[_b])):
-					if pred[_b,i,j,pred_map[i,j]] < 0.9:
-						pred_map[i,j] = self.no_rel
+					pred[_b,i,j,4] *= 10
+
+			pred_map = pred[_b].max(-1)[1] #(ne , ne)
+
+			#for i in range(len(data_ent[_b])):
+			#	for j in range(len(data_ent[_b])):
+			#		if pred[_b,i,j,pred_map[i,j]] < 0.2:
+			#			pred_map[i,j] = self.no_rel
 
 			try:
 				assert (pred_map == pred_map).all()

@@ -35,7 +35,7 @@ class Data:
 
 
 
-relations = set()
+relations = ["COMPARE" , "MODEL-FEATURE" , "PART_WHOLE" , "RESULT" , "TOPIC" , "USAGE" , ]
 def rel2id(rel):
 	return relations.index(rel)
 def id2rel(i):
@@ -134,8 +134,10 @@ def parse_a_key_file(datas , file_path):
 			pdb.set_trace()
 
 		datas[text_id].ans.append(Relation(ent_a , ent_b , rel))
-		relations.add(rel)
-
+		
+		#relations.add(rel)
+		assert rel in relations
+		
 	return datas 
 
 bert_type = "bert-base-uncased"

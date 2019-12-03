@@ -7,7 +7,8 @@ from models import models
 import pdb
 import os , sys
 import math
-
+from transformers.optimization import WarmupLinearSchedule , WarmupCosineSchedule
+from models.loss_func import *
 
 def load_data():
 	data_train , data_test = read_data(C.train_text , C.train_rels , C.test_text , C.test_rels)
@@ -64,9 +65,16 @@ def valid(dataset , model , epoch_id = 0):
 def train(train_data , test_data):
 
 	model = models[C.model](relation_typs = len(relations) + 1 , dropout = C.dropout).cuda()
-	optimizer = tc.optim.Adam(params = model.parameters() , lr = C.lr)
-
 	batch_numb = (len(train_data) // C.batch_size) + int((len(train_data) % C.batch_size) != 0)
+
+	optimizer = tc.optim.Adam(params = model.parameters() , lr = C.lr)
+	scheduler = WarmupCosineSchedule(
+		optimizer = optimizer , 
+		warmup_steps = 400 , 
+		t_total = batch_numb * C.epoch_numb , 
+	)
+	loss_func = loss_3
+
 	for epoch_id in range(C.epoch_numb):
 
 		pbar = tqdm(range(batch_numb) , ncols = 70)
@@ -82,7 +90,7 @@ def train(train_data , test_data):
 			sents = tc.LongTensor(sents).cuda()
 
 			pred = model(sents , ents)
-			loss = model.loss(pred , anss , ents)
+			loss = loss_func(model , pred , anss , ents)
 
 			try:
 				assert loss.item() == loss.item()
@@ -92,6 +100,7 @@ def train(train_data , test_data):
 			optimizer.zero_grad()
 			loss.backward()
 			optimizer.step()
+			scheduler.step()
 
 			avg_loss += float(loss)
 
