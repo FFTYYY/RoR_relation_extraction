@@ -5,7 +5,7 @@ from transformers import BertModel , BertTokenizer
 import pdb
 import math
 from .loss_func import *
-from .graph_encoder import Encoder
+#from .graph_encoder import Encoder
 
 class Model(nn.Module):
 	def __init__(self , bert_type = "bert-base-uncased" , relation_typs = 7 , dropout = 0.0):
@@ -26,7 +26,7 @@ class Model(nn.Module):
 		self.drop = nn.Dropout(self.dropout)
 		self.lno = nn.Linear(self.d_model , relation_typs)
 
-		self.graph_enc = Encoder(num_layers = 4 , d_model = self.d_model , d_hid = 1024 , h = 8 , drop_p = dropout)
+		#self.graph_enc = Encoder(num_layers = 4 , d_model = self.d_model , d_hid = 1024 , h = 8 , drop_p = dropout)
 
 	def forward(self , sents , ents):
 

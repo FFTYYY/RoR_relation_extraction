@@ -34,6 +34,7 @@ _par.add_argument("--batch_size" 	, type = int , default = 8)
 _par.add_argument("--epoch_numb" 	, type = int , default = 50)
 _par.add_argument("--lr" 			, type = float , default = 1e-4)
 _par.add_argument("--fine_tune" 	, action = "store_true" , default = False)
+_par.add_argument("--n_warmup"		, type = int , default = 400)
 
 
 _par.add_argument("--test_mode" 	, action = "store_true" , default = False)

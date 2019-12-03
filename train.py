@@ -23,6 +23,8 @@ def valid(dataset , model , epoch_id = 0):
 	pbar = tqdm(range(batch_numb) , ncols = 70)
 	avg_loss = 0
 	res_file = open("./tmp.txt" , "w" , encoding = "utf-8")
+	loss_func = loss_3
+
 	for batch_id in pbar:
 		data = dataset[batch_id * C.batch_size : (batch_id+1) * C.batch_size]
 
@@ -36,7 +38,7 @@ def valid(dataset , model , epoch_id = 0):
 
 		with tc.no_grad():
 			pred = model(sents , ents)
-			loss = model.loss(pred , anss , ents)
+			loss = loss_func(model , pred , anss , ents)
 			#loss = 0.
 			model.generate(pred , data_ent , id2rel , res_file)
 
@@ -70,7 +72,7 @@ def train(train_data , test_data):
 	optimizer = tc.optim.Adam(params = model.parameters() , lr = C.lr)
 	scheduler = WarmupCosineSchedule(
 		optimizer = optimizer , 
-		warmup_steps = 400 , 
+		warmup_steps = C.n_warmup , 
 		t_total = batch_numb * C.epoch_numb , 
 	)
 	loss_func = loss_3
