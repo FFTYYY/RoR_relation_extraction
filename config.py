@@ -6,6 +6,7 @@ from fastNLP.core._logger import logger as inner_logger
 import random
 import torch as tc
 import numpy as np
+from utils.tmp_file import random_tmp_name
 
 _par = argparse.ArgumentParser()
 
@@ -39,7 +40,7 @@ _par.add_argument("--n_warmup"		, type = int , default = 400)
 
 _par.add_argument("--test_mode" 	, action = "store_true" , default = False)
 
-#others
+#others 
 _par.add_argument("--gpus" 			, type = str , default = "0")
 _par.add_argument("--seed" 			, type = int , default = 2333)
 _par.add_argument("--log_file" 		, type = str , default = "log.txt")
@@ -61,6 +62,8 @@ logger = Logger(inner_logger , C.log_file)
 logger.log = logger.log_print_w_time
 if C.no_log:
 	logger.log = logger.nolog
+
+C.tmp_file_name = random_tmp_name()
 
 logger.log ("------------------------------------------------------")
 logger.log (pformat(C.__dict__))

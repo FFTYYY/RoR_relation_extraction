@@ -22,7 +22,7 @@ def valid(dataset , model , epoch_id = 0):
 	batch_numb = (len(dataset) // C.batch_size) + int((len(dataset) % C.batch_size) != 0)
 	pbar = tqdm(range(batch_numb) , ncols = 70)
 	avg_loss = 0
-	res_file = open("./tmp.txt" , "w" , encoding = "utf-8")
+	res_file = open(C.tmp_file_name , "w" , encoding = "utf-8")
 	loss_func = loss_3
 
 	for batch_id in pbar:
@@ -55,7 +55,7 @@ def valid(dataset , model , epoch_id = 0):
 	res_file.close()
 	os.system("perl {script} {result_file} {key_file}".format(
 		script 		= C.test_script ,
-		result_file = "./tmp.txt" ,
+		result_file = C.tmp_file_name,
 		key_file 	= C.test_rels ,
 	))	
 	print ("Epoch %d tested. avg_loss = %.4f" % (epoch_id + 1 , avg_loss / batch_numb))
@@ -118,3 +118,5 @@ if __name__ == "__main__":
 	data_train , data_test = load_data()
 
 	model = train(data_train , data_test)
+
+	os.system("rm %s" % C.tmp_file_name)

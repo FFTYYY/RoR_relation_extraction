@@ -15,8 +15,6 @@ class Model(nn.Module):
 		self.no_rel = relation_typs - 1
 		self.dropout = dropout
 
-		self.ent_emb = nn.Embedding(num_embeddings = 2 , embedding_dim = self.d_model)
-
 		self.bert = BertModel.from_pretrained(bert_type).cuda()
 		self.bertdrop = nn.Dropout(self.dropout)
 
@@ -24,7 +22,22 @@ class Model(nn.Module):
 		self.wk = nn.Linear(self.d_model , 2 * self.d_model)
 		self.drop = nn.Dropout(self.dropout)
 		self.ln1 = nn.Linear(2 * self.d_model , 2 * self.d_model)
+		#self.ln2 = nn.Linear(2 * self.d_model , 2 * self.d_model)
 		self.lno = nn.Linear(2 * self.d_model , relation_typs)
+
+		self.reset_params()
+
+	def reset_params(self):
+		nn.init.xavier_normal_(self.wq.weight.data)
+		nn.init.xavier_normal_(self.wk.weight.data)
+		nn.init.xavier_normal_(self.ln1.weight.data)
+		#nn.init.xavier_normal_(self.ln2.weight.data)
+		nn.init.xavier_normal_(self.lno.weight.data)
+
+		nn.init.constant_(self.wq.bias.data , 0)
+		nn.init.constant_(self.wk.bias.data , 0)
+		nn.init.constant_(self.ln1.bias.data , 0)
+		nn.init.constant_(self.lno.bias.data , 0)
 
 	def forward(self , sents , ents):
 
@@ -65,6 +78,7 @@ class Model(nn.Module):
 		alpha = q.view(bs,ne,1,2*d) + k.view(bs,1,ne,2*d) #(bs , n , n , d)
 		alpha = F.relu(self.drop(alpha))
 		alpha = F.relu(self.ln1(alpha))
+		#alpha = F.relu(self.ln2(alpha))
 		alpha = self.lno(alpha)
 
 

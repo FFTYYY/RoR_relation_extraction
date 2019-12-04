@@ -38,6 +38,7 @@ def loss_3(self , pred , anss , ents):
 			try:
 				assert (c_loss == c_loss).all()
 			except AssertionError:
+				print ("bad loss")
 				pdb.set_trace()
 
 			tot_loss += c_loss.sum() * class_weight[c]
