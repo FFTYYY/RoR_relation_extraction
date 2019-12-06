@@ -62,10 +62,10 @@ class Attention(nn.Module):
 		beta_0 , beta_1 = betas[:,:,:,:,0] , betas[:,:,:,:,1]
 		
 		R_Z = E_V.view(bs,h,ne,1,dk) * beta_0.view(bs,h,ne,ne,1) + E_V.view(bs,h,1,ne,dk) * beta_1.view(bs,h,ne,ne,1)
+		#R_Z = E_V.view(bs,h,ne,1,dk) * 0.5 + E_V.view(bs,h,1,ne,dk) * 0.5
 
 		R_Z = R_Z.masked_fill(~R_mas.expand(R_Z.size()).bool() , 0)
 		E_Z = E_Z.masked_fill(~E_mas.expand(E_Z.size()).bool() , 0)
-
 
 		R_Z = R_Z.view(bs,h,ne,ne,dk).permute(0,2,3,1,4).contiguous().view(bs,ne,ne,h*dk)
 		E_Z = E_Z.view(bs,h,ne,dk).permute(0,2,1,3).contiguous().view(bs,ne,h*dk)
@@ -86,7 +86,7 @@ class FFN(nn.Module):
 		return x * x_mas
 
 class Encoder_Layer(nn.Module):
-	def __init__(self , h , d_model , hidden_size):		
+	def __init__(self , h , d_model , hidden_size , dropout = 0.0):		
 		super().__init__()
 
 		assert d_model % h == 0
@@ -97,10 +97,12 @@ class Encoder_Layer(nn.Module):
 		self.att = Attention(h , d_model)
 		self.lnorm_r_1 = nn.LayerNorm(d_model)
 		self.lnorm_e_1 = nn.LayerNorm(d_model)
+		self.drop_1 = nn.Dropout(dropout)
 
 		self.ffn = FFN(d_model , hidden_size)
 		self.lnorm_r_2 = nn.LayerNorm(d_model)
 		self.lnorm_e_2 = nn.LayerNorm(d_model)
+		self.drop_2 = nn.Dropout(dropout)
 
 
 	def forward(self , R , E , R_mas , E_mas):		
@@ -117,19 +119,19 @@ class Encoder_Layer(nn.Module):
 		#-----attention-----
 
 		R_Z , E_Z = self.att(R , E , R_mas , E_mas)
-		R = self.lnorm_r_1(R_Z + R)
-		E = self.lnorm_e_1(E_Z + E)
+		R = self.lnorm_r_1(self.drop_1(R_Z) + R)
+		E = self.lnorm_e_1(self.drop_1(E_Z) + E)
 
 
 		#-----FFN-----
 		R_Z , E_Z = self.ffn(R , R_mas) , self.ffn(E , E_mas)
-		R = self.lnorm_r_2(R_Z + R)
-		E = self.lnorm_e_2(E_Z + E)
+		R = self.lnorm_r_2(self.drop_2(R_Z) + R)
+		E = self.lnorm_e_2(self.drop_2(E_Z) + E)
 
 		return R , E
 
 class Encoder(nn.Module):
-	def __init__(self , h = 8 , d_model = 768 , hidden_size = 2048 , num_layers = 6):
+	def __init__(self , h = 8 , d_model = 768 , hidden_size = 2048 , num_layers = 6 , dropout = 0.0):
 		super().__init__()
 
 		self.d_model = d_model
@@ -137,7 +139,7 @@ class Encoder(nn.Module):
 		self.num_layers = num_layers
 
 		self.layers = nn.ModuleList([
-			Encoder_Layer(h , d_model , hidden_size)
+			Encoder_Layer(h , d_model , hidden_size , dropout = dropout)
 			for _ in range(num_layers)
 		])
 

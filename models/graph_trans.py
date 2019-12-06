@@ -16,7 +16,6 @@ class Model(nn.Module):
 		self.no_rel = relation_typs - 1
 		self.dropout = dropout
 
-		self.ent_emb = nn.Embedding(num_embeddings = 2 , embedding_dim = self.d_model)
 
 		self.bert = BertModel.from_pretrained(bert_type).cuda()
 		self.bertdrop = nn.Dropout(self.dropout)
@@ -24,6 +23,7 @@ class Model(nn.Module):
 		self.wi = nn.Linear(self.d_model , self.d_model)
 		self.drop = nn.Dropout(self.dropout)
 
+		self.ent_emb = nn.Parameter(tc.zeros(2 , self.d_model))
 		self.graph_enc = Encoder(h = 8 , d_model = self.d_model , hidden_size = 1024 , num_layers = 4)
 		
 		self.wu = nn.Linear(self.d_model , self.d_model)
@@ -48,6 +48,8 @@ class Model(nn.Module):
 		nn.init.constant_(self.wo.bias.data , 0)
 
 
+		nn.init.normal_(self.ent_emb.data , 0 , 0.01)
+
 	def forward(self , sents , ents):
 
 		bs , n = sents.size()
@@ -64,7 +66,8 @@ class Model(nn.Module):
 		posi_index = tc.arange(n).view(1,n).expand(bs , n).cuda()
 		sent_mask  = (sents != 0)
 
-		with tc.no_grad():
+		#with tc.no_grad():
+		if True:
 			outputs  = self.bert(
 				s , 
 				token_type_ids = ent_index , 
@@ -112,56 +115,9 @@ class Model(nn.Module):
 			ent_mask[_b , :len(ents[_b])] = 1
 			rel_mask[_b , :len(ents[_b]) , :len(ents[_b])] = 1
 
+		ent_encode = ent_encode + self.ent_emb[0].view(1,1,d)
+		rel_encode = rel_encode + self.ent_emb[1].view(1,1,1,d)
+
 		rel_encode , ent_encode = self.graph_enc(rel_encode , ent_encode , rel_mask , ent_mask)
 
 		return rel_encode
-
-	def generate(self , pred , data_ent , rel_id2name , fil):
-		
-		def add_rel(_b , i , j , t , fil):
-			reverse = False
-			if i > j:
-				i , j = j , i
-				reverse = True
-			t = rel_id2name(t)
-			fil.write("%s(%s,%s%s)\n" % (
-				t , 
-				data_ent[_b][i].name , 
-				data_ent[_b][j].name , 
-				",REVERSE" if reverse else "" , 
-			))
-
-		bs , ne , _ , d = pred.size()
-
-		pred = tc.softmax(pred , dim = -1)
-
-		for _b in range(bs):
-
-			#----- a small trick to improve macro-f1 -----
-			for i in range(len(data_ent[_b])):
-				for j in range(len(data_ent[_b])):
-					pred[_b,i,j,4] *= 10			
-			#---------------------------------------------
-
-
-			pred_map = pred[_b].max(-1)[1] #(ne , ne)
-
-			#for i in range(len(data_ent[_b])):
-			#	for j in range(len(data_ent[_b])):
-			#		if pred[_b,i,j,pred_map[i,j]] < 0.2:
-			#			pred_map[i,j] = self.no_rel
-
-			try:
-				assert (pred_map == pred_map).all()
-			except AssertionError:
-				pdb.set_trace()
-
-			for i in range(len(data_ent[_b])):
-				for j in range(i):
-					if pred_map[i , j] != self.no_rel:
-						add_rel(_b,i,j,int(pred_map[i , j]),fil)
-					if pred_map[j , i] != self.no_rel:
-						add_rel(_b,j,i,int(pred_map[j , i]),fil)
-
-		
-

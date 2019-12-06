@@ -85,50 +85,5 @@ class Model(nn.Module):
 		alpha = alpha * ent_mask.view(bs,ne,1,1) * ent_mask.view(bs,1,ne,1)
 
 		return alpha
-
-	def generate(self , pred , data_ent , rel_id2name , fil):
-		
-		def add_rel(_b , i , j , t , fil):
-			reverse = False
-			if i > j:
-				i , j = j , i
-				reverse = True
-			t = rel_id2name(t)
-			fil.write("%s(%s,%s%s)\n" % (
-				t , 
-				data_ent[_b][i].name , 
-				data_ent[_b][j].name , 
-				",REVERSE" if reverse else "" , 
-			))
-
-		bs , ne , _ , d = pred.size()
-
-		pred = tc.softmax(pred , dim = -1)
-
-		for _b in range(bs):
-
-			for i in range(len(data_ent[_b])):
-				for j in range(len(data_ent[_b])):
-					pred[_b,i,j,4] *= 10
-
-			pred_map = pred[_b].max(-1)[1] #(ne , ne)
-
-			#for i in range(len(data_ent[_b])):
-			#	for j in range(len(data_ent[_b])):
-			#		if pred[_b,i,j,pred_map[i,j]] < 0.2:
-			#			pred_map[i,j] = self.no_rel
-
-			try:
-				assert (pred_map == pred_map).all()
-			except AssertionError:
-				pdb.set_trace()
-
-			for i in range(len(data_ent[_b])):
-				for j in range(i):
-					if pred_map[i , j] != self.no_rel:
-						add_rel(_b,i,j,int(pred_map[i , j]),fil)
-					if pred_map[j , i] != self.no_rel:
-						add_rel(_b,j,i,int(pred_map[j , i]),fil)
-
 		
 
