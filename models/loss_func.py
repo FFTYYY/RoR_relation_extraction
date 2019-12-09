@@ -8,9 +8,8 @@ import math
 def downsample(mask , count):
 	if mask.long().sum() <= 0:
 		return mask
-	dropout_ratio = (1 - count / mask.long().sum())
-	if dropout_ratio < 0.1 or dropout_ratio == 1.:
-		return mask
+	dropout_ratio = (1 - count.float() / mask.long().sum().float())
+
 	mask = F.dropout(mask.float() , dropout_ratio) != 0
 
 	return mask

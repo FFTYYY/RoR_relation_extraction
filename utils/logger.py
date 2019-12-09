@@ -8,7 +8,8 @@ class Logger:
 		print (cont)
 
 	def log_print(self , cont = ""):
-		self.log_fil.write(cont)
+		self.log_fil.write(cont + "\n")
+		self.log_fil.flush()
 		print (cont)
 
 	def log_print_w_time(self , cont = ""):

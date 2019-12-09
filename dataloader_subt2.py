@@ -291,7 +291,7 @@ def run(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_text , 
 
 	random.shuffle(train_data)
 
-	print ("length of trian / test data = %d / %d" % (len(train_data) , len(test_data)))
+	print ("length of train / test data = %d / %d" % (len(train_data) , len(test_data)))
 
 
 	return train_data , test_data

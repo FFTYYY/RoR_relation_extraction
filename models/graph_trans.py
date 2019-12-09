@@ -16,9 +16,9 @@ class Model(nn.Module):
 		self.no_rel = relation_typs - 1
 		self.dropout = dropout
 
-
 		self.bert = BertModel.from_pretrained(bert_type).cuda()
 		self.bertdrop = nn.Dropout(self.dropout)
+		#self.pos_embedding = nn.Embedding(512 , self.d_model)
 
 		self.wi = nn.Linear(self.d_model , self.d_model)
 		self.drop = nn.Dropout(self.dropout)
@@ -49,6 +49,9 @@ class Model(nn.Module):
 
 
 		nn.init.normal_(self.ent_emb.data , 0 , 0.01)
+		#nn.init.normal_(self.pos_embedding.weight , 0 , 0.01)
+		#nn.init.normal_(self.bert.embeddings.token_type_embeddings.weight , 0 , 0.01)
+
 
 	def forward(self , sents , ents):
 
@@ -76,6 +79,7 @@ class Model(nn.Module):
 			) #(n , d)
 
 			bert_encoded = outputs[0] #(bs , n , d)
+			bert_encoded = bert_encoded + self.bert.embeddings.position_embeddings(posi_index)
 			bert_encoded = self.bertdrop(bert_encoded)
 
 		ent_mask = sent_mask.new_zeros( bs , ne ).float()

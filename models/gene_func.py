@@ -30,7 +30,7 @@ def generate_from_pred(relation_typs , no_rel , pred , data_ent , rel_id2name , 
 		#----- small tricks to improve f1 value -----
 		for i in range(len(data_ent[_b])):
 			for j in range(len(data_ent[_b])):
-				pred[_b,i,j,topic_idx] *= 10 #more topic
+				#pred[_b,i,j,topic_idx] *= 10 #more topic
 
 				if i > j:
 					pred[_b,i,j,compare_idx] = 0 #no reverse compare

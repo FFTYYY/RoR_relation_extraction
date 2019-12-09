@@ -19,7 +19,18 @@ class Attention(nn.Module):
 
 		self.WQ = nn.Linear(self.dk , self.dk)
 		self.WK = nn.Linear(self.dk , self.dk)
-		self.WV = nn.Linear(self.dk , self.dk)
+		self.WV = nn.Linear(self.dk , self.dk)		
+
+		#self.reset_params()
+
+	def reset_params(self):
+		nn.init.xavier_normal_(self.WQ.weight.data)
+		nn.init.xavier_normal_(self.WK.weight.data)
+		nn.init.xavier_normal_(self.WV.weight.data)
+
+		nn.init.constant_(self.WQ.bias.data , 0)
+		nn.init.constant_(self.WK.bias.data , 0)
+		nn.init.constant_(self.WV.bias.data , 0)
 
 	def forward(self , R , E , R_mas , E_mas):
 		'''
@@ -78,6 +89,15 @@ class FFN(nn.Module):
 
 		self.ln1 = nn.Linear(d_model , hidden_size)
 		self.ln2 = nn.Linear(hidden_size , d_model)
+
+		#self.reset_params()
+
+	def reset_params(self):
+		nn.init.xavier_normal_(self.ln1.weight.data)
+		nn.init.xavier_normal_(self.ln2.weight.data)
+
+		nn.init.constant_(self.ln1.bias.data , 0)
+		nn.init.constant_(self.ln2.bias.data , 0)
 
 	def forward(self , x , x_mas):
 		x = F.relu(self.ln1(x))
