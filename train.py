@@ -47,7 +47,11 @@ def valid(relation_typs , no_rel , dataset , model , epoch_id = 0):
 			pred = model(sents , ents)
 			loss = loss_func(relation_typs , no_rel , pred , anss , ents)
 			#loss = 0.
-			generate(relation_typs , no_rel , pred , data_ent , id2rel , res_file)
+			if C.rel_only:
+				ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss]
+			else:
+				ans_rels = None
+			generate(relation_typs , no_rel , pred , data_ent , id2rel , res_file , ans_rels = ans_rels)
 
 		try:
 			assert not math.isnan(float(loss))
@@ -77,8 +81,12 @@ def valid(relation_typs , no_rel , dataset , model , epoch_id = 0):
 
 def train(train_data , test_data):
 
-	model = models[C.model](relation_typs = len(relations) + 1 , dropout = C.dropout).cuda()
-	relation_typs , no_rel = len(relations) + 1 , len(relations)
+	if C.rel_only:
+		relation_typs , no_rel = len(relations) , -1
+	else:
+		relation_typs , no_rel = len(relations) + 1 , len(relations)
+
+	model = models[C.model](relation_typs = relation_typs , dropout = C.dropout).cuda()
 
 	batch_numb = (len(train_data) // C.batch_size) + int((len(train_data) % C.batch_size) != 0)
 

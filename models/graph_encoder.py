@@ -58,7 +58,7 @@ class Attention(nn.Module):
 		#alpha_mask = (E_mas.view(bs,ne,1) * R_mas.view(bs,ne,ne)).bool()
 		alpha_mask = (E_mas.view(bs,1,1,ne).expand(bs,h,ne,ne)).bool() #防止出现一行全是-inf
 		alpha = alpha.masked_fill(~alpha_mask , float("-inf"))
-		alpha = tc.softmax(alpha , dim = -1)
+		alpha = tc.softmax(alpha, dim = -1)
 		E_Z = (alpha.view(bs,h,ne,ne,1) * R_V).sum(dim = 2)
 
 		#from E to R
@@ -69,7 +69,7 @@ class Attention(nn.Module):
 		#beta_1 = beta_1.masked_fill(~beta_mask , float("-inf"))
 
 		betas = tc.cat([beta_0 , beta_1] , dim = -1)
-		betas = tc.softmax(betas , dim = -1)
+		betas = tc.softmax(betas, dim = -1)
 		beta_0 , beta_1 = betas[:,:,:,:,0] , betas[:,:,:,:,1]
 		
 		R_Z = E_V.view(bs,h,ne,1,dk) * beta_0.view(bs,h,ne,ne,1) + E_V.view(bs,h,1,ne,dk) * beta_1.view(bs,h,ne,ne,1)
@@ -125,13 +125,15 @@ class Encoder_Layer(nn.Module):
 		self.drop_2 = nn.Dropout(dropout)
 
 
-	def forward(self , R , E , R_mas , E_mas):		
+	def forward(self , R , E , R_mas , E_mas , sent_enc = None , sent_mas = None):		
 		'''
 			R: (bs , ne , ne , d)
 			E: (bs , ne , d)
+			sent_enc: (bs , n , d)
 
 			R_mas: (bs , ne , ne , 1)
 			E_mas: (bs , ne , 1)
+			sent_mas: (bs , ne , 1)
 		'''
 
 		bs , ne , d = E.size()
@@ -148,6 +150,10 @@ class Encoder_Layer(nn.Module):
 		R = self.lnorm_r_2(self.drop_2(R_Z) + R)
 		E = self.lnorm_e_2(self.drop_2(E_Z) + E)
 
+
+		#-----extern-attention-----
+		#alp = tc.matmul(R , sent_enc.transpose(-1,-2))
+
 		return R , E
 
 class Encoder(nn.Module):
@@ -163,10 +169,12 @@ class Encoder(nn.Module):
 			for _ in range(num_layers)
 		])
 
-	def forward(self , R , E , R_mas , E_mas):
+	def forward(self , R , E , R_mas , E_mas , sent_enc = None , sent_mas = None):
 		'''
 			R: (bs , ne , ne , d)
-			E: (bs , ne , d)
+			E: (bs , ne , d)			
+			sent_enc: (bs , n , d)
+
 		'''
 
 		bs , ne , d = E.size()
@@ -175,9 +183,14 @@ class Encoder(nn.Module):
 		R_mas = R_mas.view(bs,ne,ne,1).float()
 		E_mas = E_mas.view(bs,ne,1).float()
 		R , E = R*R_mas , E*E_mas
+		if sent_mas is not None:
+			_ , n , _ = sent_enc.size()
+			sent_mas = sent_mas.view(bs,n,1).float()
+			sent_enc = sent_enc * sent_mas
+
 
 		for layer in self.layers:
-			R , E = layer(R , E , R_mas , E_mas)
+			R , E = layer(R , E , R_mas , E_mas , sent_enc , sent_mas)
 
 		return R , E
 

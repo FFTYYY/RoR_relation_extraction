@@ -3,3 +3,4 @@ log.txt
 *.pyc
 sftp-config.json
 tmp.txt
+log*

@@ -9,8 +9,14 @@ import pdb
 compare_idx = 0
 topic_idx = 4
 
-def generate_from_pred(relation_typs , no_rel , pred , data_ent , rel_id2name , fil):
+def generate_from_pred(relation_typs , no_rel , pred , data_ent , rel_id2name , fil , ans_rels = None):
 	def add_rel(_b , i , j , t , fil):
+
+		#只输出有relation的边的类型
+		if ans_rels is not None:
+			if (i,j) not in ans_rels[_b]:
+				return
+
 		reverse = False
 		if i > j:
 			i , j = j , i
@@ -52,8 +58,8 @@ def generate_from_pred(relation_typs , no_rel , pred , data_ent , rel_id2name , 
 					add_rel(_b,j,i,int(pred_map[j , i]),fil)
 
 
-def generate(relation_typs , no_rel , pred , data_ent , rel_id2name , fil):
+def generate(relation_typs , no_rel , pred , data_ent , rel_id2name , fil , ans_rels = None):
 		
 		pred = tc.softmax(pred , dim = -1)
 
-		generate_from_pred(relation_typs , no_rel , pred , data_ent , rel_id2name , fil)
+		generate_from_pred(relation_typs , no_rel , pred , data_ent , rel_id2name , fil , ans_rels = ans_rels)

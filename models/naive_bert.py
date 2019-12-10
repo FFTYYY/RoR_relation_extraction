@@ -18,12 +18,12 @@ class Model(nn.Module):
 		self.bert = BertModel.from_pretrained(bert_type).cuda()
 		self.bertdrop = nn.Dropout(self.dropout)
 
-		self.wq = nn.Linear(self.d_model , 2 * self.d_model)
-		self.wk = nn.Linear(self.d_model , 2 * self.d_model)
+		self.wq = nn.Linear(self.d_model , self.d_model)
+		self.wk = nn.Linear(self.d_model , self.d_model)
 		self.drop = nn.Dropout(self.dropout)
-		self.ln1 = nn.Linear(2 * self.d_model , 2 * self.d_model)
+		self.ln1 = nn.Linear(self.d_model , self.d_model)
 		#self.ln2 = nn.Linear(2 * self.d_model , 2 * self.d_model)
-		self.lno = nn.Linear(2 * self.d_model , relation_typs)
+		self.lno = nn.Linear(self.d_model , relation_typs)
 
 		self.reset_params()
 
@@ -75,7 +75,7 @@ class Model(nn.Module):
 
 		q = self.wq(ent_encode)
 		k = self.wk(ent_encode)
-		alpha = q.view(bs,ne,1,2*d) + k.view(bs,1,ne,2*d) #(bs , n , n , d)
+		alpha = q.view(bs,ne,1,d) + k.view(bs,1,ne,d) #(bs , n , n , d)
 		alpha = F.relu(self.drop(alpha))
 		alpha = F.relu(self.ln1(alpha))
 		#alpha = F.relu(self.ln2(alpha))

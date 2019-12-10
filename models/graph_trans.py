@@ -26,11 +26,11 @@ class Model(nn.Module):
 		self.ent_emb = nn.Parameter(tc.zeros(2 , self.d_model))
 		self.graph_enc = Encoder(h = 8 , d_model = self.d_model , hidden_size = 1024 , num_layers = 4)
 		
-		self.wu = nn.Linear(self.d_model , self.d_model)
-		self.wv = nn.Linear(self.d_model , self.d_model)
+		self.wu = nn.Linear(self.d_model , 2 * self.d_model)
+		self.wv = nn.Linear(self.d_model , 2 * self.d_model)
 
-		self.ln1 = nn.Linear(2 * self.d_model , self.d_model)
-		self.wo = nn.Linear(self.d_model , relation_typs)
+		self.ln1 = nn.Linear(3 * self.d_model , 2 * self.d_model)
+		self.wo = nn.Linear(2 * self.d_model , relation_typs)
 
 		self.reset_params()
 
@@ -79,7 +79,7 @@ class Model(nn.Module):
 			) #(n , d)
 
 			bert_encoded = outputs[0] #(bs , n , d)
-			bert_encoded = bert_encoded + self.bert.embeddings.position_embeddings(posi_index)
+			#bert_encoded = bert_encoded + self.bert.embeddings.position_embeddings(posi_index)
 			bert_encoded = self.bertdrop(bert_encoded)
 
 		ent_mask = sent_mask.new_zeros( bs , ne ).float()
@@ -98,7 +98,7 @@ class Model(nn.Module):
 
 		u = self.wu(ent_encode)
 		v = self.wv(ent_encode)
-		alpha = u.view(bs,ne,1,d) + v.view(bs,1,ne,d) #(bs , n , n , d)
+		alpha = u.view(bs,ne,1,-1) + v.view(bs,1,ne,-1) #(bs , n , n , d)
 		alpha = F.relu(alpha)
 
 		rel_enco = tc.cat([rel_enco , alpha] , dim = -1)

@@ -95,9 +95,26 @@ def parse_a_text_file(file_path , dirty = False):
 			assert x.find("<entity") < 0 and x.find("</entity>") < 0
 			assert len(ents) > 0
 
+			rem_ent = []
 			for e in ents:
-				assert (e.s == 0 or x[e.s-1] == " ") and x[e.s] != " "
-				assert (e.e == len(x) or x[e.e] == " ")  and x[e.e-1] != " "
+				try:
+					assert (e.s == 0 or x[e.s-1] == " ") and x[e.s] != " "
+					assert (e.e == len(x) or x[e.e] == " ")  and x[e.e-1] != " "
+				except AssertionError:
+					rem_ent.append(e)
+				except IndexError:
+					if dirty:
+						assert False  #直接扔掉这实例
+					rem_ent.append(e)
+
+			if len(rem_ent) > 0:
+				if dirty:
+					assert False #直接扔掉这实例
+
+				print ("Bad entity showed. in %s" % e.name)
+				for e in rem_ent:
+					#drop that
+					ents.remove(e)
 
 			abstract = x
 

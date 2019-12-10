@@ -1,0 +1,7 @@
+#train subtask2:
+
+CUDA_VISIBLE_DEVICES=0 python train.py --model=graph_trans --ensemble=5 --log_file=log
+
+#train subtask1.1:
+CUDA_VISIBLE_DEVICES=0 python train.py --model=graph_trans --ensemble=5 --rel_only \
+    --test_text=semeval_2018_task7/1.1.test.text.xml --test_rels=semeval_2018_task7/keys.test.1.1.txt --log_file=log

@@ -20,6 +20,8 @@ _par.add_argument("--test_text" 	, type = str , default = "./semeval_2018_task7/
 _par.add_argument("--test_rels" 	, type = str , default = "./semeval_2018_task7/keys.test.2.txt")
 _par.add_argument("--test_script" 	, type = str , default = "./semeval_2018_task7/semeval2018_task7_scorer-v1.2.pl")
 
+_par.add_argument("--rel_only" 		, action = "store_true" , default = False)
+
 #model selection
 _par.add_argument("--model" 		, type = str , default = "naive_bert" , 
 	choices = [
