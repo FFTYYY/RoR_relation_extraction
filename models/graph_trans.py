@@ -25,12 +25,12 @@ class Model(nn.Module):
 
 		self.ent_emb = nn.Parameter(tc.zeros(2 , self.d_model))
 		self.graph_enc = Encoder(h = 8 , d_model = self.d_model , hidden_size = 1024 , num_layers = 4)
-		
-		self.wu = nn.Linear(self.d_model , 2 * self.d_model)
-		self.wv = nn.Linear(self.d_model , 2 * self.d_model)
+	
+		self.wu = nn.Linear(self.d_model , self.d_model)
+		self.wv = nn.Linear(self.d_model , self.d_model)
 
-		self.ln1 = nn.Linear(3 * self.d_model , 2 * self.d_model)
-		self.wo = nn.Linear(2 * self.d_model , relation_typs)
+		self.ln1 = nn.Linear(2 * self.d_model , self.d_model)
+		self.wo = nn.Linear(self.d_model , relation_typs)
 
 		self.reset_params()
 

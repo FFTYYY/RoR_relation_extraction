@@ -1,5 +1,5 @@
 from config import C , logger
-from dataloader_subt2 import run as read_data , relations , id2rel
+from dataloader import run as read_data , relations , id2rel
 from tqdm import tqdm
 from utils.train_util import pad_sents , pad_ents , pad_anss
 import torch as tc

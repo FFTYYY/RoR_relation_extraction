@@ -5,7 +5,7 @@ from tqdm import tqdm
 import os , sys
 from utils.train_util import pad_sents , pad_ents , pad_anss
 from config import C , logger
-from dataloader_subt2 import run as read_data , relations , id2rel
+from dataloader import run as read_data , relations , id2rel
 from models.gene_func import generate_from_pred
 
 def ensemble_generate(relation_typs , no_rel , preds , data_ent , rel_id2name , fil):
@@ -36,7 +36,7 @@ def ensemble_test(relation_typs , no_rel , dataset , models):
 
 		sents = [x.abs  for x in data] 
 		ents  = [[ [e.s , e.e] for e in x.ents ] for x in data] 
-		#anss  = [[ [a.u , a.v , a.type] for a in x.ans ] for x in data]
+		anss  = [[ [a.u , a.v , a.type] for a in x.ans ] for x in data]
 		data_ent = [x.ents for x in data] 
 
 		sents 	= pad_sents(sents)
@@ -48,7 +48,13 @@ def ensemble_test(relation_typs , no_rel , dataset , models):
 				model = model.cuda()
 				preds[i] = model(sents , ents)
 				model = model.cpu()
-			ensemble_generate(relation_typs , no_rel , preds , data_ent , id2rel , res_file)
+
+			if C.rel_only:
+				ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss]
+			else:
+				ans_rels = None
+
+			ensemble_generate(relation_typs , no_rel , preds , data_ent , id2rel , res_file , ans_rels = ans_rels)
 
 		pbar.set_description_str("Final Test")
 
