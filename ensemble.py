@@ -8,7 +8,7 @@ from config import C , logger
 from dataloader import run as read_data , relations , id2rel
 from models.gene_func import generate_from_pred
 
-def ensemble_generate(relation_typs , no_rel , preds , data_ent , rel_id2name , fil):
+def ensemble_generate(relation_typs , no_rel , preds , data_ent , rel_id2name , fil , ans_rels = None):
 		
 		bs , ne , _ , d = preds[0].size()
 
@@ -18,7 +18,7 @@ def ensemble_generate(relation_typs , no_rel , preds , data_ent , rel_id2name , 
 			pred += preds[k]
 		pred /= len(preds)
 
-		generate_from_pred(relation_typs , no_rel , pred , data_ent , rel_id2name , fil)
+		generate_from_pred(relation_typs , no_rel , pred , data_ent , rel_id2name , fil , ans_rels = ans_rels)
 
 
 
