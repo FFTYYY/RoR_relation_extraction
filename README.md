@@ -41,23 +41,23 @@ Relation-Extraction With Bert and graph
 
 subtask 2:
 
-方法                         | Macro-F1 | Micro-F1
+Method                       | Macro-F1 | Micro-F1
 -----------------------------|----------|-----------
-* Rotsztejn et.al.           |  49.3  |  -
-* naive_bert                 |  48.29 |  43.88
-* graph_trans                |  50.44 |  45.02
+* Rotsztejn et.al.           |  49.3    |  -
+* naive_bert                 |  48.29   |  43.88
+* graph_trans                |  50.44   |  45.02
 
 subtasl 1.1:
 
-方法                         | Macro-F1 | Micro-F1
------------------------------|----------|-----------
-* Rotsztejn et.al.           |  81.72 |  82.82
-* naive_bert                 |  82.27 |  83.38
-* graph_trans                |  83.06 |  83.94
-Wang et.al.(single-per-pass) |  81.4  |  83.1
-Wang et.al.(multiple-per-pass) |  80.5 |  83.9
-naive_bert                   |  78.49 |  80.56
-graph_trans                  |  80.57 |  81.13
+Method                         | Macro-F1 | Micro-F1
+-------------------------------|----------|-----------
+* Rotsztejn et.al.             |  81.72   |  82.82
+* naive_bert                   |  82.27   |  83.38
+* graph_trans                  |  83.06   |  83.94
+Wang et.al.(single-per-pass)   |  81.4    |  83.1
+Wang et.al.(multiple-per-pass) |  80.5    |  83.9
+naive_bert                     |  78.49   |  80.56
+graph_trans                    |  80.57   |  81.13
 
 其中 Rotsztejn et.al. 是在semeval 2018 task7的比赛上取得最高成绩的模型。
 
