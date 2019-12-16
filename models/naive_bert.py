@@ -50,6 +50,7 @@ class Model(nn.Module):
 		return: FloatTensor, (bsz , n_ent , n_ent , relation_typs)
 			其中 relation_typs = self.relation_typs ，表示关系个数
 			其中 ret[b,i,j,r]表示第b个batch的第i个entity和第j个entity之间的relation type是r的概率
+			（没有softmax）
 		'''
 
 		s = sents

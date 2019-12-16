@@ -7,7 +7,7 @@ from models import models
 import pdb
 import os , sys
 import math
-from transformers.optimization import WarmupLinearSchedule , WarmupCosineSchedule
+from transformers.optimization import get_cosine_schedule_with_warmup , get_linear_schedule_with_warmup
 from models.loss_func import loss_funcs
 from models.gene_func import generate
 from ensemble import ensemble_test
@@ -91,10 +91,10 @@ def train(train_data , test_data):
 	batch_numb = (len(train_data) // C.batch_size) + int((len(train_data) % C.batch_size) != 0)
 
 	optimizer = tc.optim.Adam(params = model.parameters() , lr = C.lr)
-	scheduler = WarmupCosineSchedule(
+	scheduler = get_cosine_schedule_with_warmup(
 		optimizer = optimizer , 
-		warmup_steps = C.n_warmup , 
-		t_total = batch_numb * C.epoch_numb , 
+		num_warmup_steps = C.n_warmup , 
+		num_training_steps = batch_numb * C.epoch_numb , 
 	)
 	loss_func = loss_funcs[C.loss]
 
