@@ -55,7 +55,7 @@ subtasl 1.1:
 * naive_bert                 |  82.27 |  83.38
 * graph_trans                |  83.06 |  83.94
 Wang et.al.(single-per-pass) |  81.4  |  83.1
-Wang et.al.(multiple-per-pass)|  80.5 |  83.9
+Wang et.al.(multiple-per-pass) |  80.5 |  83.9
 naive_bert                   |  78.49 |  80.56
 graph_trans                  |  80.57 |  81.13
 
