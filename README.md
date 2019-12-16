@@ -37,23 +37,23 @@ Relation-Extraction With Bert and graph
 
 ## 结果
 
-（其中打加号的是使用了ensemble的方法。）
+（其中以(e)开头的是使用了ensemble的方法。）
 
 subtask 2:
 
 Method                       | Macro-F1 | Micro-F1
 -----------------------------|----------|-----------
-+ Rotsztejn et.al.           |  49.3    |  -
-+ naive_bert                 |  48.29   |  43.88
-+ graph_trans                |  50.44   |  45.02
+(e)Rotsztejn et.al.          |  49.3    |  -
+(e)naive_bert                |  48.29   |  43.88
+(e)graph_trans               |  50.44   |  45.02
 
 subtasl 1.1:
 
 Method                         | Macro-F1 | Micro-F1
 -------------------------------|----------|-----------
-+ Rotsztejn et.al.             |  81.72   |  82.82
-+ naive_bert                   |  82.27   |  83.38
-+ graph_trans                  |  83.06   |  83.94
+(e)Rotsztejn et.al.            |  81.72   |  82.82
+(e)naive_bert                  |  82.27   |  83.38
+(e)graph_trans                 |  83.06   |  83.94
 Wang et.al.(single-per-pass)   |  81.4    |  83.1
 Wang et.al.(multiple-per-pass) |  80.5    |  83.9
 naive_bert                     |  78.49   |  80.56
