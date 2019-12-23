@@ -14,13 +14,13 @@ def downsample(mask , count):
 
 	return mask
 
-def loss_4(relation_typs , no_rel , pred , anss , ents):
+def loss_4(relation_typs , no_rel , pred , anss , ents, class_weight = [1,0.5,0.5,1,5,0.5,1]):
 	'''
 		按类别加权，而且平衡正负例数量
 	'''
 	bs , ne , _ , d = pred.size()
 
-	class_weight = [1,0.5,0.5,1,5,0.5,1]
+
 	tot_loss = 0
 	tot_show = 0
 
@@ -64,13 +64,12 @@ def loss_4(relation_typs , no_rel , pred , anss , ents):
 
 
 
-def loss_3(relation_typs , no_rel , pred , anss , ents):
+def loss_3(relation_typs , no_rel , pred , anss , ents, class_weight = [1,0.5,0.5,1,5,0.5,0.05]):
 	'''
 		直接平均，按类别加权
 	'''
 	bs , ne , _ , d = pred.size()
 
-	class_weight = [1,0.5,0.5,1,5,0.5,0.05]
 	tot_loss = 0
 	tot_show = 0
 
@@ -104,7 +103,7 @@ def loss_3(relation_typs , no_rel , pred , anss , ents):
 	return tot_loss
 
 
-def loss_1(relation_typs , no_rel , pred , anss , ents):
+def loss_1(relation_typs , no_rel , pred , anss , ents, class_weight=[1,0.5,0.5,1,5,0.5,0.05]):
 	'''
 		正负例分别加权平均
 	'''
@@ -143,14 +142,14 @@ def loss_1(relation_typs , no_rel , pred , anss , ents):
 	return tot_loss
 
 
-def loss_2(relation_typs , no_rel , pred , anss , ents):
+def loss_2(relation_typs , no_rel , pred , anss , ents, class_weight = [1,1,1,1,1,1,1]):
 	'''
 		所有类分别平均然后加权平均
 	'''
 	bs , ne , _ , d = pred.size()
 
 	neg_rate = 0.5
-	class_weight = [1,1,1,1,1,1,1]
+
 	tot_loss_class = [0.] * relation_typs
 	tot_show_class = [0 ] * relation_typs
 

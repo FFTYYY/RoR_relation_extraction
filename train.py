@@ -1,5 +1,5 @@
 from config import C , logger
-from dataloader import run as read_data , relations , id2rel
+from dataloader import read_data
 from tqdm import tqdm
 from utils.train_util import pad_sents , pad_ents , pad_anss
 import torch as tc
@@ -13,15 +13,17 @@ from models.gene_func import generate
 from ensemble import ensemble_test
 
 def load_data():
-	data_train , data_test = read_data(
+	data_train , data_test, relations, rel_weights = read_data(
 		C.train_text_1 , C.train_rels_1 ,
 		C.train_text_2 , C.train_rels_2 ,
 		C.test_text , C.test_rels , 
 	)
 
-	return data_train , data_test
+	return data_train , data_test, relations, rel_weights
 
-def valid(relation_typs , no_rel , dataset , model , epoch_id = 0):
+def valid(relations, rel_weights, relation_typs , no_rel , dataset , model , epoch_id = 0):
+	def id2rel(i):
+		return relations[i]
 
 	model = model.eval()
 	batch_size = 8
@@ -45,7 +47,7 @@ def valid(relation_typs , no_rel , dataset , model , epoch_id = 0):
 
 		with tc.no_grad():
 			pred = model(sents , ents)
-			loss = loss_func(relation_typs , no_rel , pred , anss , ents)
+			loss = loss_func(relation_typs , no_rel , pred , anss , ents, rel_weights)
 			#loss = 0.
 			if C.rel_only:
 				ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss]
@@ -79,12 +81,13 @@ def valid(relation_typs , no_rel , dataset , model , epoch_id = 0):
 	model = model.train()
 	#pdb.set_trace()
 
-def train(train_data , test_data):
+def train(train_data , test_data, relations, rel_weights):
 
 	if C.rel_only:
 		relation_typs , no_rel = len(relations) , -1
 	else:
 		relation_typs , no_rel = len(relations) + 1 , len(relations)
+		rel_weights += [0.05]
 
 	model = models[C.model](relation_typs = relation_typs , dropout = C.dropout).cuda()
 
@@ -113,7 +116,7 @@ def train(train_data , test_data):
 			sents = tc.LongTensor(sents).cuda()
 
 			pred = model(sents , ents)
-			loss = loss_func(relation_typs , no_rel , pred , anss , ents)
+			loss = loss_func(relation_typs , no_rel , pred , anss , ents, class_weight=rel_weights)
 
 			try:
 				assert loss.item() == loss.item()
@@ -130,23 +133,25 @@ def train(train_data , test_data):
 			pbar.set_description_str("(Train)Epoch %d" % (epoch_id + 1))
 			pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
 		logger.log ("Epoch %d ended. avg_loss = %.4f" % (epoch_id + 1 , avg_loss / batch_numb))
-		valid(relation_typs , no_rel , test_data , model , epoch_id)
+		valid(relations, rel_weights, relation_typs , no_rel , test_data , model , epoch_id)
 
 	return model
 
 if __name__ == "__main__":
 
-	data_train , data_test = load_data()
+	data_train , data_test, relations, rel_weights = load_data()
+	def id2rel(i):
+		return relations[i]
 
 	trained_models = []
 
 	for i in range(C.ensemble_size):
-		model = train(data_train , data_test)
+		model = train(data_train , data_test, relations, rel_weights)
 		model = model.cpu()
 		trained_models.append(model)
 
 
 	relation_typs , no_rel = len(relations) + 1 , len(relations)
-	ensemble_test(relation_typs , no_rel , data_test , trained_models)
+	ensemble_test(relation_typs , no_rel , data_test , trained_models, id2rel)
 
 	os.system("rm %s" % C.tmp_file_name)

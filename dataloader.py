@@ -4,6 +4,7 @@ import os.path as path
 import pdb
 from transformers import BertModel , BertTokenizer
 import random
+from collections import Counter
 
 class Entity:
 	def __init__(self , start_pos , end_pos , name):
@@ -34,12 +35,8 @@ class Data:
 		return self.ent_names[ent_id]
 
 
+# relations = ["COMPARE" , "MODEL-FEATURE" , "PART_WHOLE" , "RESULT" , "TOPIC" , "USAGE" , ]
 
-relations = ["COMPARE" , "MODEL-FEATURE" , "PART_WHOLE" , "RESULT" , "TOPIC" , "USAGE" , ]
-def rel2id(rel):
-	return relations.index(rel)
-def id2rel(i):
-	return relations[i]
 
 def parse_a_text_file(file_path , dirty = False):
 	'''看起来还行'''
@@ -132,6 +129,7 @@ def parse_a_text_file(file_path , dirty = False):
 	return datas
 
 def parse_a_key_file(datas , file_path):
+	relations = []
 
 	with open(file_path , "r" , encoding = "utf-8") as fil:
 		cont = fil.read()
@@ -165,10 +163,9 @@ def parse_a_key_file(datas , file_path):
 
 		datas[text_id].ans.append(Relation(ent_a , ent_b , rel))
 		
-		#relations.add(rel)
-		assert rel in relations
-		
-	return datas 
+		relations.append(rel)
+
+	return datas, relations
 
 bert_type = "bert-base-uncased"
 tokenizer = BertTokenizer.from_pretrained(bert_type)
@@ -202,11 +199,10 @@ def bertize(data):
 		old_s , x.s = x.s , new_s
 		old_e , x.e = x.e , new_e
 
-		try:
-			assert "".join(tok_abs[new_s : new_e]).replace("##" , "").lower() == cont[old_s : old_e].replace(" ","").lower()
-		except AssertionError:
+		if "".join(tok_abs[new_s : new_e]).replace("##" , "").lower() != cont[old_s : old_e].replace(" ","").lower():
 			print ("bad bertize")
-			pdb.set_trace()
+			# pdb.set_trace()
+			# TODO: skip special characters
 
 	data.abs = tok_abs
 
@@ -214,10 +210,10 @@ def bertize(data):
 
 	return data
 
-def numberize(data):
+def numberize(data, relations):
 	data.abs = tokenizer.convert_tokens_to_ids(data.abs)
 	for x in data.ans:
-		x.type = rel2id(x.type)
+		x.type = relations.index(x.type)
 		x.u = data.ent_name2id(x.u)
 		x.v = data.ent_name2id(x.v)
 	return data
@@ -251,33 +247,39 @@ def cut(data , dtype = "train"):
 
 	return data
 
-def run(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_text , test_rels):
-
-	global relations
+def read_data(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_text , test_rels):
 
 	train_data_1 	= parse_a_text_file(train_text_1 , dirty = False)
-	train_data_1 	= parse_a_key_file(train_data_1 , train_rels_1)
+	train_data_1,rel_list 	= parse_a_key_file(train_data_1 , train_rels_1)
 
 	train_data_2 = {}
 	train_data_2 	= parse_a_text_file(train_text_2 , dirty = True)
-	train_data_2 	= parse_a_key_file(train_data_2 , train_rels_2)
+	train_data_2,rel_list2 	= parse_a_key_file(train_data_2 , train_rels_2)
 	train_data = train_data_1
 	train_data.update(train_data_2)
 
 	test_data 	= parse_a_text_file(test_text)
-	test_data 	= parse_a_key_file(test_data , test_rels)
+	test_data,rel_list3 	= parse_a_key_file(test_data , test_rels)
+
+	rel_list = rel_list + rel_list2 + rel_list3
+	rel_count = Counter(rel_list)
+	rel_top_freq = rel_count.most_common(1)[0][-1]
+	# import pdb;pdb.set_trace()
+	rel_weights = [rel_top_freq / cnt for cnt in rel_count.values()]
+	relations = list(rel_count.keys())
+
+	bert_type = "bert-base-uncased"
+	tokenizer = BertTokenizer.from_pretrained(bert_type)
 
 	for name , data in train_data.items():
 		train_data[name] = bertize(data)
 	for name , data in test_data.items():
 		test_data[name]  = bertize(data)
 
-	relations = list(relations)
-
 	for name , data in train_data.items():
-		train_data[name] = numberize(data)
+		train_data[name] = numberize(data, relations)
 	for name , data in test_data.items():
-		test_data[name]  = numberize(data)
+		test_data[name]  = numberize(data, relations)
 
 	to_rem = []
 	for name , data in train_data.items():
@@ -311,7 +313,7 @@ def run(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_text , 
 	print ("length of train / test data = %d / %d" % (len(train_data) , len(test_data)))
 
 
-	return train_data , test_data
+	return train_data , test_data, relations, rel_weights
 
 
 if __name__ == "__main__":
