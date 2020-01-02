@@ -1,6 +1,6 @@
 from config import C
 import os , sys
-import os.path as path
+import numpy as np
 import pdb
 from transformers import BertModel , BertTokenizer
 import random
@@ -263,10 +263,21 @@ def read_data(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_t
 
 	rel_list = rel_list + rel_list2 + rel_list3
 	rel_count = Counter(rel_list)
-	rel_top_freq = rel_count.most_common(1)[0][-1]
-	# import pdb;pdb.set_trace()
-	rel_weights = [rel_top_freq / cnt for cnt in rel_count.values()]
 	relations = list(rel_count.keys())
+
+	if C.dataset == 'semeval_2018_task7':
+		rel2wgh = {
+			"COMPARE": 1, "MODEL-FEATURE": 0.5, "PART_WHOLE": 0.5,
+			"RESULT": 1, "TOPIC": 5, "USAGE": 0.5,
+		}
+		relations = ["COMPARE", "MODEL-FEATURE", "PART_WHOLE", "RESULT",
+					 "TOPIC", "USAGE", ]
+		rel_weights = [rel2wgh[r] for r in relations]
+	else:
+		rel_top_freq = rel_count.most_common(1)[0][-1]
+		rel_weights = [(rel_top_freq + C.rel_weight_smooth) / (cnt + C.rel_weight_smooth) for cnt in rel_count.values()]
+		if C.rel_weight_norm:
+			rel_weights = np.array(rel_weights) / np.sum(rel_weights)
 
 	bert_type = "bert-base-uncased"
 	tokenizer = BertTokenizer.from_pretrained(bert_type)
@@ -317,4 +328,4 @@ def read_data(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_t
 
 
 if __name__ == "__main__":
-	run(C.train_text , C.train_rels , C.test_text , C.test_rels)
+	read_data(C.train_text , C.train_rels , C.test_text , C.test_rels)

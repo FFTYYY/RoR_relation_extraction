@@ -11,6 +11,7 @@ from transformers.optimization import get_cosine_schedule_with_warmup , get_line
 from models.loss_func import loss_funcs
 from models.gene_func import generate
 from ensemble import ensemble_test
+from utils.scorer import get_f1
 
 def load_data():
 	data_train , data_test, relations, rel_weights = read_data(
@@ -66,17 +67,20 @@ def valid(relations, rel_weights, relation_typs , no_rel , dataset , model , epo
 		pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
 
 	res_file.close()
-	os.system("perl {script} {result_file} {key_file} > {result_save}".format(
-		script 		= C.test_script ,
-		result_file = C.tmp_file_name,
-		key_file 	= C.test_rels ,
-		result_save = C.tmp_file_name + ".imm"
-	))
-	with open(C.tmp_file_name + ".imm" , "r" , encoding = "utf-8") as rfil:
-		result = rfil.read()
-	logger.log (result)
-	logger.log ("Epoch %d tested. avg_loss = %.4f" % (epoch_id + 1 , avg_loss / batch_numb))
-
+	if C.dataset == 'semeval_2018_task7':
+		os.system("perl {script} {result_file} {key_file} > {result_save}".format(
+			script 		= C.test_script ,
+			result_file = C.tmp_file_name,
+			key_file 	= C.test_rels ,
+			result_save = C.tmp_file_name + ".imm"
+		))
+		with open(C.tmp_file_name + ".imm" , "r" , encoding = "utf-8") as rfil:
+			result = rfil.read()
+		logger.log (result)
+		logger.log ("Epoch {} tested. loss={:.4f}".format(epoch_id + 1 , avg_loss / batch_numb))
+	else:
+		f1_micro, f1_macro = get_f1([C.test_rels, C.train_rels_1, C.train_rels_2], C.test_rels, C.tmp_file_name)
+		logger.log ("Epoch {} tested. F1_mi={:.2f}%, F1_ma={:.2f}%, loss={:.4f}".format(epoch_id + 1 , f1_micro * 100, f1_macro * 100, avg_loss / batch_numb))
 
 	model = model.train()
 	#pdb.set_trace()
@@ -87,7 +91,7 @@ def train(train_data , test_data, relations, rel_weights):
 		relation_typs , no_rel = len(relations) , -1
 	else:
 		relation_typs , no_rel = len(relations) + 1 , len(relations)
-		rel_weights += [0.05]
+		rel_weights += [C.no_rel_weight]
 
 	model = models[C.model](relation_typs = relation_typs , dropout = C.dropout).cuda()
 
@@ -150,8 +154,11 @@ if __name__ == "__main__":
 		model = model.cpu()
 		trained_models.append(model)
 
-
-	relation_typs , no_rel = len(relations) + 1 , len(relations)
+	if C.rel_only:
+		relation_typs , no_rel = len(relations) , -1
+	else:
+		relation_typs , no_rel = len(relations) + 1 , len(relations)
+		rel_weights += [C.no_rel_weight]
 	ensemble_test(relation_typs , no_rel , data_test , trained_models, id2rel)
 
 	os.system("rm %s" % C.tmp_file_name)
