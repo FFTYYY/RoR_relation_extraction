@@ -1,4 +1,4 @@
-from utils.watch_time import time_str
+from .watch_time import time_str
 
 class Logger:
 	def __init__(self , fil_path = None):

@@ -1,4 +1,3 @@
-from config import C
 import os , sys
 import numpy as np
 import pdb
@@ -247,7 +246,7 @@ def cut(data , dtype = "train"):
 
 	return data
 
-def read_data(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_text , test_rels):
+def read_data(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_text , test_rels , dataset, rel_weight_smooth, rel_weight_norm):
 
 	train_data_1 	= parse_a_text_file(train_text_1 , dirty = False)
 	train_data_1,rel_list 	= parse_a_key_file(train_data_1 , train_rels_1)
@@ -265,7 +264,7 @@ def read_data(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_t
 	rel_count = Counter(rel_list)
 	relations = list(rel_count.keys())
 
-	if C.dataset == 'semeval_2018_task7':
+	if dataset == 'semeval_2018_task7':
 		rel2wgh = {
 			"COMPARE": 1, "MODEL-FEATURE": 0.5, "PART_WHOLE": 0.5,
 			"RESULT": 1, "TOPIC": 5, "USAGE": 0.5,
@@ -275,8 +274,8 @@ def read_data(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_t
 		rel_weights = [rel2wgh[r] for r in relations]
 	else:
 		rel_top_freq = rel_count.most_common(1)[0][-1]
-		rel_weights = [(rel_top_freq + C.rel_weight_smooth) / (cnt + C.rel_weight_smooth) for cnt in rel_count.values()]
-		if C.rel_weight_norm:
+		rel_weights = [(rel_top_freq + rel_weight_smooth) / (cnt + rel_weight_smooth) for cnt in rel_count.values()]
+		if rel_weight_norm:
 			rel_weights = np.array(rel_weights) / np.sum(rel_weights)
 
 	bert_type = "bert-base-uncased"
@@ -328,4 +327,6 @@ def read_data(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_t
 
 
 if __name__ == "__main__":
+	from config import C
+
 	read_data(C.train_text , C.train_rels , C.test_text , C.test_rels)

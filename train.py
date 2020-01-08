@@ -1,4 +1,3 @@
-from config import C , logger
 from dataloader import read_data
 from tqdm import tqdm
 from utils.train_util import pad_sents , pad_ents , pad_anss
@@ -13,16 +12,17 @@ from models.gene_func import generate
 from ensemble import ensemble_test
 from utils.scorer import get_f1
 
-def load_data():
+def load_data(C):
 	data_train , data_test, relations, rel_weights = read_data(
 		C.train_text_1 , C.train_rels_1 ,
 		C.train_text_2 , C.train_rels_2 ,
-		C.test_text , C.test_rels , 
+		C.test_text , C.test_rels ,
+		C.dataset, C.rel_weight_smooth, C.rel_weight_norm,
 	)
 
 	return data_train , data_test, relations, rel_weights
 
-def valid(relations, rel_weights, relation_typs , no_rel , dataset , model , epoch_id = 0):
+def valid(C, logger, relations, rel_weights, relation_typs , no_rel , dataset , model , epoch_id = 0):
 	def id2rel(i):
 		return relations[i]
 
@@ -85,7 +85,7 @@ def valid(relations, rel_weights, relation_typs , no_rel , dataset , model , epo
 	model = model.train()
 	#pdb.set_trace()
 
-def train(train_data , test_data, relations, rel_weights):
+def train(C, logger, train_data , test_data, relations, rel_weights):
 
 	if C.rel_only:
 		relation_typs , no_rel = len(relations) , -1
@@ -137,20 +137,21 @@ def train(train_data , test_data, relations, rel_weights):
 			pbar.set_description_str("(Train)Epoch %d" % (epoch_id + 1))
 			pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
 		logger.log ("Epoch %d ended. avg_loss = %.4f" % (epoch_id + 1 , avg_loss / batch_numb))
-		valid(relations, rel_weights, relation_typs , no_rel , test_data , model , epoch_id)
+		valid(C, logger, relations, rel_weights, relation_typs , no_rel , test_data , model , epoch_id)
 
 	return model
 
 if __name__ == "__main__":
+	from config import C, logger
 
-	data_train , data_test, relations, rel_weights = load_data()
+	data_train , data_test, relations, rel_weights = load_data(C)
 	def id2rel(i):
 		return relations[i]
 
 	trained_models = []
 
 	for i in range(C.ensemble_size):
-		model = train(data_train , data_test, relations, rel_weights)
+		model = train(C, logger, data_train , data_test, relations, rel_weights)
 		model = model.cpu()
 		trained_models.append(model)
 

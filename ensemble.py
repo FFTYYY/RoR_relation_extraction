@@ -4,7 +4,6 @@ import pdb
 from tqdm import tqdm
 import os , sys
 from utils.train_util import pad_sents , pad_ents , pad_anss
-from config import C , logger
 from models.gene_func import generate_from_pred
 
 def ensemble_generate(relation_typs , no_rel , preds , data_ent , rel_id2name , fil , ans_rels = None):
@@ -22,6 +21,8 @@ def ensemble_generate(relation_typs , no_rel , preds , data_ent , rel_id2name , 
 
 
 def ensemble_test(relation_typs , no_rel , dataset , models, id2rel):
+	from config import C, logger
+
 	for model in models:
 		model.eval()
 	batch_size = 8
