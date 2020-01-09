@@ -91,7 +91,7 @@ def train(C, logger, train_data , test_data, relations, rel_weights):
 		relation_typs , no_rel = len(relations) , -1
 	else:
 		relation_typs , no_rel = len(relations) + 1 , len(relations)
-		rel_weights += [C.no_rel_weight]
+		rel_weights = rel_weights + [C.no_rel_weight] # copy, not reference
 
 	model = models[C.model](relation_typs = relation_typs , dropout = C.dropout).cuda()
 
@@ -120,6 +120,7 @@ def train(C, logger, train_data , test_data, relations, rel_weights):
 			sents = tc.LongTensor(sents).cuda()
 
 			pred = model(sents , ents)
+			if len(rel_weights) !=7: import pdb;pdb.set_trace()
 			loss = loss_func(relation_typs , no_rel , pred , anss , ents, class_weight=rel_weights)
 
 			try:

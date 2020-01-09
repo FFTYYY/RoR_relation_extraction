@@ -1,3 +1,6 @@
+#install data and env
+sh prep_data_and_env.sh
+
 #train subtask2:
 
 CUDA_VISIBLE_DEVICES=0 python train.py --model=graph_trans --ensemble=5 --log_file=log
