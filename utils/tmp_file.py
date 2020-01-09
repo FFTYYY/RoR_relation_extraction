@@ -1,4 +1,7 @@
 import time
+import fitlog
+
+fitlog.commit(__file__)
 
 def random_tmp_name():
 	#random is useless for seed has been fixed

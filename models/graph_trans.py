@@ -8,12 +8,11 @@ from .loss_func import *
 from .graph_encoder import Encoder
 
 class Model(nn.Module):
-	def __init__(self , bert_type = "bert-base-uncased" , relation_typs = 7 , dropout = 0.0):
+	def __init__(self , bert_type = "bert-base-uncased" , n_rel_typs = 7 , dropout = 0.0):
 		super().__init__()
 
 		self.d_model = 768
-		self.relation_typs = relation_typs
-		self.no_rel = relation_typs - 1
+		self.n_rel_typs = n_rel_typs
 		self.dropout = dropout
 
 		self.bert = BertModel.from_pretrained(bert_type).cuda()
@@ -30,7 +29,7 @@ class Model(nn.Module):
 		self.wv = nn.Linear(self.d_model , self.d_model)
 
 		self.ln1 = nn.Linear(2 * self.d_model , self.d_model)
-		self.wo = nn.Linear(self.d_model , relation_typs)
+		self.wo = nn.Linear(self.d_model , n_rel_typs)
 
 		self.reset_params()
 

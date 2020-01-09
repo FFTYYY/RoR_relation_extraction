@@ -1,19 +1,23 @@
 from dataloader import read_data
 from tqdm import tqdm
-from utils.train_util import pad_sents , pad_ents , pad_anss
 import torch as tc
 from models import models
 import pdb
 import os , sys
 import math
 from transformers.optimization import get_cosine_schedule_with_warmup , get_linear_schedule_with_warmup
-from models.loss_func import loss_funcs
-from models.gene_func import generate
-from ensemble import ensemble_test
+from loss import loss_funcs
+from generate import generate
+from test import test
+from utils.train_util import pad_sents , get_data_from_batch
 from utils.scorer import get_f1
+import fitlog
 
-def load_data(C):
+fitlog.commit(__file__)
+
+def load_data(C , logger):
 	data_train , data_test, relations, rel_weights = read_data(
+		logger , 
 		C.train_text_1 , C.train_rels_1 ,
 		C.train_text_2 , C.train_rels_2 ,
 		C.test_text , C.test_rels ,
@@ -22,84 +26,14 @@ def load_data(C):
 
 	return data_train , data_test, relations, rel_weights
 
-def valid(C, logger, relations, rel_weights, relation_typs , no_rel , dataset , model , epoch_id = 0):
-	def id2rel(i):
-		return relations[i]
-
-	model = model.eval()
-	batch_size = 8
-
-	batch_numb = (len(dataset) // batch_size) + int((len(dataset) % batch_size) != 0)
-	pbar = tqdm(range(batch_numb) , ncols = 70)
-	avg_loss = 0
-	loss_func = loss_funcs[C.loss]
-
-	generated = ""
-	for batch_id in pbar:
-		data = dataset[batch_id * batch_size : (batch_id+1) * batch_size]
-
-		sents = [x.abs  for x in data] 
-		ents  = [[ [e.s , e.e] for e in x.ents ] for x in data] 
-		anss  = [[ [a.u , a.v , a.type] for a in x.ans ] for x in data]
-		data_ent = [x.ents for x in data] 
-
-		sents 	= pad_sents(sents)
-		sents = tc.LongTensor(sents).cuda()
-
-		with tc.no_grad():
-			pred = model(sents , ents)
-			loss = loss_func(relation_typs , no_rel , pred , anss , ents, rel_weights)
-			#loss = 0.
-			if C.rel_only:
-				ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss]
-			else:
-				ans_rels = None
-			generated += generate(relation_typs , no_rel , pred , data_ent , id2rel , ans_rels = ans_rels)
-
-		try:
-			assert not math.isnan(float(loss))
-		except AssertionError:
-			pdb.set_trace()
-
-		avg_loss += float(loss)
-
-		pbar.set_description_str("(Test )Epoch %d" % (epoch_id + 1))
-		pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
-
-	if C.dataset == 'semeval_2018_task7':
-		with open(C.tmp_file_name , "w" , encoding = "utf-8") as ofil:
-			ofil.write(generated)
-		os.system("perl {script} {result_file} {key_file} > {result_save}".format(
-			script 		= C.test_script ,
-			result_file = C.tmp_file_name,
-			key_file 	= C.test_rels ,
-			result_save = C.tmp_file_name + ".imm"
-		))
-		with open(C.tmp_file_name + ".imm" , "r" , encoding = "utf-8") as rfil:
-			result = rfil.read()
-		logger.log (result)
-		logger.log ("Epoch {} tested. loss={:.4f}".format(epoch_id + 1 , avg_loss / batch_numb))
-
-		os.system("rm %s" % C.tmp_file_name)
-		os.system("rm %s.imm" % C.tmp_file_name)
-	else:
-		f1_micro, f1_macro = get_f1([C.test_rels, C.train_rels_1, C.train_rels_2], C.test_rels, C.tmp_file_name)
-		logger.log ("Epoch {} tested. F1_mi={:.2f}%, F1_ma={:.2f}%, loss={:.4f}".format(epoch_id + 1 , f1_micro * 100, f1_macro * 100, avg_loss / batch_numb))
-
-	model = model.train()
-	#pdb.set_trace()
-
-def train(C, logger, train_data , test_data, relations, rel_weights):
-
-	if C.rel_only:
-		relation_typs , no_rel = len(relations) , -1
-	else:
-		relation_typs , no_rel = len(relations) + 1 , len(relations)
-		rel_weights = rel_weights + [C.no_rel_weight] # copy, not reference
-
-	model = models[C.model](relation_typs = relation_typs , dropout = C.dropout).cuda()
+def train(C, logger, train_data , test_data , relations , rel_weights , n_rel_typs , no_rel , ensemble_id = 0):	
+	#----- determine some arguments -----
+	assert len(rel_weights) == 7
 
 	batch_numb = (len(train_data) // C.batch_size) + int((len(train_data) % C.batch_size) != 0)
+
+	#----- get model and other training tools -----
+	model = models[C.model](n_rel_typs = n_rel_typs , dropout = C.dropout).cuda()
 
 	optimizer = tc.optim.Adam(params = model.parameters() , lr = C.lr)
 	scheduler = get_cosine_schedule_with_warmup(
@@ -109,62 +43,79 @@ def train(C, logger, train_data , test_data, relations, rel_weights):
 	)
 	loss_func = loss_funcs[C.loss]
 
+	#----- iterate each epoch -----
+
 	for epoch_id in range(C.epoch_numb):
 
 		pbar = tqdm(range(batch_numb) , ncols = 70)
 		avg_loss = 0
 		for batch_id in pbar:
+			#----- get data -----
 			data = train_data[batch_id * C.batch_size : (batch_id+1) * C.batch_size]
+			sents , ents , anss , data_ent = get_data_from_batch(data)
 
-			sents = [x.abs  for x in data] 
-			ents  = [[ [e.s , e.e] for e in x.ents ] for x in data] 
-			anss  = [[ [a.u , a.v , a.type] for a in x.ans ] for x in data]
-
-			sents = pad_sents(sents)
-			sents = tc.LongTensor(sents).cuda()
-
+			#----- forward -----
 			pred = model(sents , ents)
-			if len(rel_weights) !=7: import pdb;pdb.set_trace()
-			loss = loss_func(relation_typs , no_rel , pred , anss , ents, class_weight=rel_weights)
+			loss = loss_func(pred , anss , ents , no_rel = no_rel , class_weight = rel_weights)
 
-			try:
-				assert loss.item() == loss.item()
-			except AssertionError:
-				pdb.set_trace()
-
+			#----- backward -----
 			optimizer.zero_grad()
 			loss.backward()
 			optimizer.step()
 			scheduler.step()
 
+			#----- other activitis ----
+
 			avg_loss += float(loss)
+			fitlog.add_loss(value = float(loss) , step = epoch_id * batch_numb + batch_id , 
+					name = "(%d)train loss" % ensemble_id)
 
 			pbar.set_description_str("(Train)Epoch %d" % (epoch_id + 1))
 			pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
 		logger.log ("Epoch %d ended. avg_loss = %.4f" % (epoch_id + 1 , avg_loss / batch_numb))
-		valid(C, logger, relations, rel_weights, relation_typs , no_rel , test_data , model , epoch_id)
+
+		#----- test -----
+		test(
+			C , logger , 
+			test_data , model , 
+			relations , rel_weights , no_rel , 
+			epoch_id , ensemble_id , 
+		)
+		model = model.train()
 
 	return model
 
 if __name__ == "__main__":
 	from config import C, logger
 
-	data_train , data_test, relations, rel_weights = load_data(C)
-	def id2rel(i):
-		return relations[i]
+	#----- prepare data and some global variables -----
+	data_train , data_test, relations, rel_weights = load_data(C , logger)
 
+	if C.rel_only: # no no_rel
+		n_rel_typs , no_rel = len(relations) , -1
+	else:
+		n_rel_typs , no_rel = len(relations) + 1 , len(relations)
+		rel_weights = rel_weights + [C.no_rel_weight]
+
+	#----- train & test -----
 	trained_models = []
-
 	for i in range(C.ensemble_size):
-		model = train(C, logger, data_train , data_test, relations, rel_weights)
+		model = train(
+			C , logger , 
+			data_train , data_test , 
+			relations, rel_weights , n_rel_typs , no_rel , 
+			ensemble_id = i , 
+		)
 		model = model.cpu()
 		trained_models.append(model)
 
-	if C.rel_only:
-		relation_typs , no_rel = len(relations) , -1
-	else:
-		relation_typs , no_rel = len(relations) + 1 , len(relations)
-		rel_weights += [C.no_rel_weight]
-	ensemble_test(relation_typs , no_rel , data_test , trained_models, id2rel)
+	#----- ensemble test -----
+	test(
+		C , logger , 
+		data_test , trained_models , 
+		relations , rel_weights , no_rel , 
+		epoch_id = C.epoch_numb , ensemble_id = C.ensemble_size, 
+	)
 
-	os.system("rm %s" % C.tmp_file_name)
+	#----- finish -----
+	fitlog.finish()

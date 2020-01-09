@@ -4,6 +4,9 @@ import pdb
 from transformers import BertModel , BertTokenizer
 import random
 from collections import Counter
+import fitlog
+
+fitlog.commit(__file__)
 
 class Entity:
 	def __init__(self , start_pos , end_pos , name):
@@ -41,7 +44,7 @@ def get_file_content(file_path):
 		cont = fil.read()
 	return cont
 
-def parse_a_text_file(cont , dirty = False):
+def parse_a_text_file(logger , cont , dirty = False):
 	'''看起来还行'''
 
 	cont = cont.split("<doc>")[1].split("</doc>")[0] 				#去掉<doc>之前的和</doc>之后的内容
@@ -109,7 +112,7 @@ def parse_a_text_file(cont , dirty = False):
 				if dirty:
 					assert False #直接扔掉这实例
 
-				print ("Bad entity showed. in %s" % e.name)
+				logger.log ("Bad entity showed. in %s" % e.name)
 				for e in rem_ent:
 					#drop that
 					ents.remove(e)
@@ -129,7 +132,7 @@ def parse_a_text_file(cont , dirty = False):
 
 	return datas
 
-def parse_a_key_file(datas , cont):
+def parse_a_key_file(logger , datas , cont):
 	relations = []
 
 	cont = cont.strip().split("\n")
@@ -166,9 +169,7 @@ def parse_a_key_file(datas , cont):
 
 	return datas, relations
 
-bert_type = "bert-base-uncased"
-tokenizer = BertTokenizer.from_pretrained(bert_type)
-def bertize(data):
+def bertize(logger , tokenizer , data):
 
 	cont = data.abs
 	tok_abs = ["[CLS]"] + tokenizer.tokenize(cont) + ["[SEP]"]
@@ -192,14 +193,14 @@ def bertize(data):
 		try:
 			assert new_s >= 0 and new_e >= 0
 		except AssertionError:
-			print ("bad bertize")
+			logger.log ("bad bertize")
 			pdb.set_trace()
 
 		old_s , x.s = x.s , new_s
 		old_e , x.e = x.e , new_e
 
 		if "".join(tok_abs[new_s : new_e]).replace("##" , "").lower() != cont[old_s : old_e].replace(" ","").lower():
-			print ("bad bertize")
+			logger.log ("bad bertize")
 			# pdb.set_trace()
 			# TODO: skip special characters
 
@@ -209,7 +210,7 @@ def bertize(data):
 
 	return data
 
-def numberize(data, relations):
+def numberize(logger , tokenizer , data , relations):
 	data.abs = tokenizer.convert_tokens_to_ids(data.abs)
 	for x in data.ans:
 		x.type = relations.index(x.type)
@@ -217,7 +218,7 @@ def numberize(data, relations):
 		x.v = data.ent_name2id(x.v)
 	return data
 
-def cut(data , dtype = "train"):
+def cut(logger , data , dtype = "train"):
 
 	if len(data.abs) >= 512:
 		#print ("abs too long")
@@ -232,7 +233,7 @@ def cut(data , dtype = "train"):
 		if dtype == "test":
 			for x in to_remove:
 				data.ents.remove(x)
-			print ("Droped %d entity because too long in %s" % (len(to_remove) , dtype))
+			logger.log ("Droped %d entity because too long in %s" % (len(to_remove) , dtype))
 
 		elif dtype == "train":
 			return None
@@ -247,7 +248,7 @@ def cut(data , dtype = "train"):
 	return data
 
 
-def read_data(file_train_text_1 , file_train_rels_1 , file_train_text_2 ,
+def read_data(logger , file_train_text_1 , file_train_rels_1 , file_train_text_2 ,
 			  file_train_rels_2 , file_test_text , file_test_rels , dataset_type,
 			  rel_weight_smooth, rel_weight_norm):
 
@@ -258,24 +259,26 @@ def read_data(file_train_text_1 , file_train_rels_1 , file_train_text_2 ,
 	test_text = get_file_content(file_test_text)
 	test_rels = get_file_content(file_test_rels)
 	return file_content2data(
-        train_text_1, train_rels_1, train_text_2, train_rels_2,
-        test_text, test_rels, dataset_type, rel_weight_smooth,
-        rel_weight_norm)
+		logger , 
+		train_text_1, train_rels_1, train_text_2, train_rels_2,
+		test_text, test_rels, dataset_type, rel_weight_smooth,
+		rel_weight_norm
+	)
 
-def file_content2data(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 ,
+def file_content2data(logger , train_text_1 , train_rels_1 , train_text_2 , train_rels_2 ,
 			  test_text , test_rels , dataset_type, rel_weight_smooth,
 			  rel_weight_norm, verbose=True):
-	train_data_1 	= parse_a_text_file(train_text_1 , dirty = False)
-	train_data_1,rel_list 	= parse_a_key_file(train_data_1 , train_rels_1)
+	train_data_1 	= parse_a_text_file(logger , train_text_1 , dirty = False)
+	train_data_1,rel_list 	= parse_a_key_file(logger , train_data_1 , train_rels_1)
 
 	train_data_2 = {}
-	train_data_2 	= parse_a_text_file(train_text_2 , dirty = True)
-	train_data_2,rel_list2 	= parse_a_key_file(train_data_2 , train_rels_2)
+	train_data_2 	= parse_a_text_file(logger , train_text_2 , dirty = True)
+	train_data_2,rel_list2 	= parse_a_key_file(logger , train_data_2 , train_rels_2)
 	train_data = train_data_1
 	train_data.update(train_data_2)
 
-	test_data 	= parse_a_text_file(test_text)
-	test_data,rel_list3 	= parse_a_key_file(test_data , test_rels)
+	test_data 	= parse_a_text_file(logger , test_text)
+	test_data,rel_list3 	= parse_a_key_file(logger , test_data , test_rels)
 
 	rel_list = rel_list + rel_list2 + rel_list3
 	rel_count = Counter(rel_list)
@@ -299,34 +302,34 @@ def file_content2data(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 
 	tokenizer = BertTokenizer.from_pretrained(bert_type)
 
 	for name , data in train_data.items():
-		train_data[name] = bertize(data)
+		train_data[name] = bertize(logger , tokenizer , data)
 	for name , data in test_data.items():
-		test_data[name]  = bertize(data)
+		test_data[name]  = bertize(logger , tokenizer , data)
 
 	for name , data in train_data.items():
-		train_data[name] = numberize(data, relations)
+		train_data[name] = numberize(logger , tokenizer , data, relations)
 	for name , data in test_data.items():
-		test_data[name]  = numberize(data, relations)
+		test_data[name]  = numberize(logger , tokenizer , data, relations)
 
 	to_rem = []
 	for name , data in train_data.items():
-		got = cut(data , "train")
+		got = cut(logger , data , "train")
 		if got is not None:
 			train_data[name] = got
 		else:
 			to_rem.append(name)
-			print ("*** droped one instance in train because too long")
+			logger.log ("*** droped one instance in train because too long")
 	for x in to_rem:
 		train_data.pop(x)
 
 	to_rem = []
 	for name , data in test_data.items():
-		got = cut(data , "test")
+		got = cut(logger , data , "test")
 		if got is not None:
 			test_data[name] = got
 		else:
 			to_rem.append(name)
-			print ("*** droped one instance in test because too long")
+			logger.log ("*** droped one instance in test because too long")
 	for x in to_rem:
 		test_data.pop(x)
 
@@ -337,7 +340,7 @@ def file_content2data(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 
 
 	random.shuffle(train_data)
 
-	if verbose: print ("length of train / test data = %d / %d" % (len(train_data) , len(test_data)))
+	if verbose: logger.log ("length of train / test data = %d / %d" % (len(train_data) , len(test_data)))
 
 
 	return train_data , test_data, relations, rel_weights

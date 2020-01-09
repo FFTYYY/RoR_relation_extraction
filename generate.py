@@ -9,13 +9,8 @@ import pdb
 compare_idx = 0
 topic_idx = 4
 
-class FakeFile:
-	def __init__(self):
-		self.buf = ""
-	def write(self , x = ""):
-		self.buf += x
-
-def generate_from_pred(relation_typs , no_rel , pred , data_ent , rel_id2name , fil , ans_rels = None):
+def generate_from_pred(pred , data_ent , relations , fil , no_rel , ans_rels = None):
+	
 	def add_rel(_b , i , j , t , fil):
 
 		#只输出有relation的边的类型
@@ -27,7 +22,7 @@ def generate_from_pred(relation_typs , no_rel , pred , data_ent , rel_id2name , 
 		if i > j:
 			i , j = j , i
 			reverse = True
-		t = rel_id2name(t)
+		t = relations[t]
 		fil.write("%s(%s,%s%s)\n" % (
 			t , 
 			data_ent[_b][i].name , 
@@ -64,11 +59,23 @@ def generate_from_pred(relation_typs , no_rel , pred , data_ent , rel_id2name , 
 					add_rel(_b,j,i,int(pred_map[j , i]),fil)
 
 
-def generate(relation_typs , no_rel , pred , data_ent , rel_id2name , ans_rels = None):
+class FakeFile:
+	def __init__(self):
+		self.buf = ""
+	def write(self , x = ""):
+		self.buf += x
+
+def generate(preds , data_ent , relations , no_rel , ans_rels = None):
 		
-		pred = tc.softmax(pred , dim = -1)
+	#----- average predicted scores -----
+	pred = 0
+	for k in range(len(preds)):
+		preds[k] = tc.softmax(preds[k] , dim = -1)
+		pred += preds[k]
+	pred /= len(preds)
 
-		fil = FakeFile()
-		generate_from_pred(relation_typs , no_rel , pred , data_ent , rel_id2name , fil , ans_rels = ans_rels)
+	#----- generate from it -----
+	fil = FakeFile()
+	generate_from_pred(pred , data_ent , relations , fil , no_rel , ans_rels = ans_rels)
 
-		return fil.buf
+	return fil.buf

@@ -1,4 +1,7 @@
 import numpy as np
+import fitlog
+
+fitlog.commit(__file__)
 
 __all__ = ['get_f1']
 

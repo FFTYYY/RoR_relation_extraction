@@ -7,12 +7,11 @@ import math
 from .loss_func import *
 
 class Model(nn.Module):
-	def __init__(self , bert_type = "bert-base-uncased" , relation_typs = 7 , dropout = 0.0):
+	def __init__(self , bert_type = "bert-base-uncased" , n_rel_typs = 7 , dropout = 0.0):
 		super().__init__()
 
 		self.d_model = 768
-		self.relation_typs = relation_typs
-		self.no_rel = relation_typs - 1
+		self.n_rel_typs = n_rel_typs
 		self.dropout = dropout
 
 		self.bert = BertModel.from_pretrained(bert_type).cuda()
@@ -23,7 +22,7 @@ class Model(nn.Module):
 		self.drop = nn.Dropout(self.dropout)
 		self.ln1 = nn.Linear(self.d_model , self.d_model)
 		#self.ln2 = nn.Linear(2 * self.d_model , 2 * self.d_model)
-		self.lno = nn.Linear(self.d_model , relation_typs)
+		self.lno = nn.Linear(self.d_model , n_rel_typs)
 
 		self.reset_params()
 
