@@ -32,9 +32,9 @@ def valid(C, logger, relations, rel_weights, relation_typs , no_rel , dataset , 
 	batch_numb = (len(dataset) // batch_size) + int((len(dataset) % batch_size) != 0)
 	pbar = tqdm(range(batch_numb) , ncols = 70)
 	avg_loss = 0
-	res_file = open(C.tmp_file_name , "w" , encoding = "utf-8")
 	loss_func = loss_funcs[C.loss]
 
+	generated = ""
 	for batch_id in pbar:
 		data = dataset[batch_id * batch_size : (batch_id+1) * batch_size]
 
@@ -54,7 +54,7 @@ def valid(C, logger, relations, rel_weights, relation_typs , no_rel , dataset , 
 				ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss]
 			else:
 				ans_rels = None
-			generate(relation_typs , no_rel , pred , data_ent , id2rel , res_file , ans_rels = ans_rels)
+			generated += generate(relation_typs , no_rel , pred , data_ent , id2rel , ans_rels = ans_rels)
 
 		try:
 			assert not math.isnan(float(loss))
@@ -66,8 +66,9 @@ def valid(C, logger, relations, rel_weights, relation_typs , no_rel , dataset , 
 		pbar.set_description_str("(Test )Epoch %d" % (epoch_id + 1))
 		pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
 
-	res_file.close()
 	if C.dataset == 'semeval_2018_task7':
+		with open(C.tmp_file_name , "w" , encoding = "utf-8") as ofil:
+			ofil.write(generated)
 		os.system("perl {script} {result_file} {key_file} > {result_save}".format(
 			script 		= C.test_script ,
 			result_file = C.tmp_file_name,
@@ -78,6 +79,9 @@ def valid(C, logger, relations, rel_weights, relation_typs , no_rel , dataset , 
 			result = rfil.read()
 		logger.log (result)
 		logger.log ("Epoch {} tested. loss={:.4f}".format(epoch_id + 1 , avg_loss / batch_numb))
+
+		os.system("rm %s" % C.tmp_file_name)
+		os.system("rm %s.imm" % C.tmp_file_name)
 	else:
 		f1_micro, f1_macro = get_f1([C.test_rels, C.train_rels_1, C.train_rels_2], C.test_rels, C.tmp_file_name)
 		logger.log ("Epoch {} tested. F1_mi={:.2f}%, F1_ma={:.2f}%, loss={:.4f}".format(epoch_id + 1 , f1_micro * 100, f1_macro * 100, avg_loss / batch_numb))
