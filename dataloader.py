@@ -1,9 +1,9 @@
-from config import C
 import os , sys
-import os.path as path
+import numpy as np
 import pdb
 from transformers import BertModel , BertTokenizer
 import random
+from collections import Counter
 
 class Entity:
 	def __init__(self , start_pos , end_pos , name):
@@ -34,19 +34,17 @@ class Data:
 		return self.ent_names[ent_id]
 
 
+# relations = ["COMPARE" , "MODEL-FEATURE" , "PART_WHOLE" , "RESULT" , "TOPIC" , "USAGE" , ]
 
-relations = ["COMPARE" , "MODEL-FEATURE" , "PART_WHOLE" , "RESULT" , "TOPIC" , "USAGE" , ]
-def rel2id(rel):
-	return relations.index(rel)
-def id2rel(i):
-	return relations[i]
-
-def parse_a_text_file(file_path , dirty = False):
-	'''看起来还行'''
+def get_file_content(file_path):
 	with open(file_path , "r" , encoding = "utf-8") as fil:
 		cont = fil.read()
+	return cont
 
-	cont = cont.split("<doc>")[1].split("</doc>")[0] 				#去掉<doc>之前的和</doc>之后的内容 
+def parse_a_text_file(cont , dirty = False):
+	'''看起来还行'''
+
+	cont = cont.split("<doc>")[1].split("</doc>")[0] 				#去掉<doc>之前的和</doc>之后的内容
 	cont = filter(lambda x : x , cont.strip().split("</text>"))
 
 	datas = {}
@@ -119,10 +117,10 @@ def parse_a_text_file(file_path , dirty = False):
 			abstract = x
 
 			datas[text_id] = Data(
-				text_id 	= text_id ,  
-				title 		= title ,  
-				abstract 	= abstract ,  
-				ents 		= ents ,  
+				text_id 	= text_id ,
+				title 		= title ,
+				abstract 	= abstract ,
+				ents 		= ents ,
 			)
 		except Exception:
 			# if error occured , give up this data sample.
@@ -131,10 +129,9 @@ def parse_a_text_file(file_path , dirty = False):
 
 	return datas
 
-def parse_a_key_file(datas , file_path):
+def parse_a_key_file(datas , cont):
+	relations = []
 
-	with open(file_path , "r" , encoding = "utf-8") as fil:
-		cont = fil.read()
 	cont = cont.strip().split("\n")
 
 	for x in cont:
@@ -164,11 +161,10 @@ def parse_a_key_file(datas , file_path):
 			continue
 
 		datas[text_id].ans.append(Relation(ent_a , ent_b , rel))
-		
-		#relations.add(rel)
-		assert rel in relations
-		
-	return datas 
+
+		relations.append(rel)
+
+	return datas, relations
 
 bert_type = "bert-base-uncased"
 tokenizer = BertTokenizer.from_pretrained(bert_type)
@@ -194,7 +190,7 @@ def bertize(data):
 				new_e = i
 
 		try:
-			assert new_s >= 0 and new_e >= 0		
+			assert new_s >= 0 and new_e >= 0
 		except AssertionError:
 			print ("bad bertize")
 			pdb.set_trace()
@@ -202,11 +198,10 @@ def bertize(data):
 		old_s , x.s = x.s , new_s
 		old_e , x.e = x.e , new_e
 
-		try:
-			assert "".join(tok_abs[new_s : new_e]).replace("##" , "").lower() == cont[old_s : old_e].replace(" ","").lower()
-		except AssertionError:
+		if "".join(tok_abs[new_s : new_e]).replace("##" , "").lower() != cont[old_s : old_e].replace(" ","").lower():
 			print ("bad bertize")
-			pdb.set_trace()
+			# pdb.set_trace()
+			# TODO: skip special characters
 
 	data.abs = tok_abs
 
@@ -214,10 +209,10 @@ def bertize(data):
 
 	return data
 
-def numberize(data):
+def numberize(data, relations):
 	data.abs = tokenizer.convert_tokens_to_ids(data.abs)
 	for x in data.ans:
-		x.type = rel2id(x.type)
+		x.type = relations.index(x.type)
 		x.u = data.ent_name2id(x.u)
 		x.v = data.ent_name2id(x.v)
 	return data
@@ -251,33 +246,67 @@ def cut(data , dtype = "train"):
 
 	return data
 
-def run(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_text , test_rels):
 
-	global relations
+def read_data(file_train_text_1 , file_train_rels_1 , file_train_text_2 ,
+			  file_train_rels_2 , file_test_text , file_test_rels , dataset_type,
+			  rel_weight_smooth, rel_weight_norm):
 
+	train_text_1 = get_file_content(file_train_text_1)
+	train_rels_1 = get_file_content(file_train_rels_1)
+	train_text_2 = get_file_content(file_train_text_2)
+	train_rels_2 = get_file_content(file_train_rels_2)
+	test_text = get_file_content(file_test_text)
+	test_rels = get_file_content(file_test_rels)
+	return file_content2data(
+        train_text_1, train_rels_1, train_text_2, train_rels_2,
+        test_text, test_rels, dataset_type, rel_weight_smooth,
+        rel_weight_norm)
+
+def file_content2data(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 ,
+			  test_text , test_rels , dataset_type, rel_weight_smooth,
+			  rel_weight_norm, verbose=True):
 	train_data_1 	= parse_a_text_file(train_text_1 , dirty = False)
-	train_data_1 	= parse_a_key_file(train_data_1 , train_rels_1)
+	train_data_1,rel_list 	= parse_a_key_file(train_data_1 , train_rels_1)
 
 	train_data_2 = {}
 	train_data_2 	= parse_a_text_file(train_text_2 , dirty = True)
-	train_data_2 	= parse_a_key_file(train_data_2 , train_rels_2)
+	train_data_2,rel_list2 	= parse_a_key_file(train_data_2 , train_rels_2)
 	train_data = train_data_1
 	train_data.update(train_data_2)
 
 	test_data 	= parse_a_text_file(test_text)
-	test_data 	= parse_a_key_file(test_data , test_rels)
+	test_data,rel_list3 	= parse_a_key_file(test_data , test_rels)
+
+	rel_list = rel_list + rel_list2 + rel_list3
+	rel_count = Counter(rel_list)
+	relations = list(rel_count.keys())
+
+	if dataset_type == 'semeval_2018_task7':
+		rel2wgh = {
+			"COMPARE": 1, "MODEL-FEATURE": 0.5, "PART_WHOLE": 0.5,
+			"RESULT": 1, "TOPIC": 5, "USAGE": 0.5,
+		}
+		relations = ["COMPARE", "MODEL-FEATURE", "PART_WHOLE", "RESULT",
+					 "TOPIC", "USAGE", ]
+		rel_weights = [rel2wgh[r] for r in relations]
+	else:
+		rel_top_freq = rel_count.most_common(1)[0][-1]
+		rel_weights = [(rel_top_freq + rel_weight_smooth) / (cnt + rel_weight_smooth) for cnt in rel_count.values()]
+		if rel_weight_norm:
+			rel_weights = np.array(rel_weights) / np.sum(rel_weights)
+
+	bert_type = "bert-base-uncased"
+	tokenizer = BertTokenizer.from_pretrained(bert_type)
 
 	for name , data in train_data.items():
 		train_data[name] = bertize(data)
 	for name , data in test_data.items():
 		test_data[name]  = bertize(data)
 
-	relations = list(relations)
-
 	for name , data in train_data.items():
-		train_data[name] = numberize(data)
+		train_data[name] = numberize(data, relations)
 	for name , data in test_data.items():
-		test_data[name]  = numberize(data)
+		test_data[name]  = numberize(data, relations)
 
 	to_rem = []
 	for name , data in train_data.items():
@@ -295,7 +324,7 @@ def run(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_text , 
 		got = cut(data , "test")
 		if got is not None:
 			test_data[name] = got
-		else:			
+		else:
 			to_rem.append(name)
 			print ("*** droped one instance in test because too long")
 	for x in to_rem:
@@ -308,11 +337,13 @@ def run(train_text_1 , train_rels_1 , train_text_2 , train_rels_2 , test_text , 
 
 	random.shuffle(train_data)
 
-	print ("length of train / test data = %d / %d" % (len(train_data) , len(test_data)))
+	if verbose: print ("length of train / test data = %d / %d" % (len(train_data) , len(test_data)))
 
 
-	return train_data , test_data
+	return train_data , test_data, relations, rel_weights
 
 
 if __name__ == "__main__":
-	run(C.train_text , C.train_rels , C.test_text , C.test_rels)
+	from config import C
+
+	read_data(C.train_text , C.train_rels , C.test_text , C.test_rels)

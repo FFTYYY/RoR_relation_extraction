@@ -14,13 +14,13 @@ def downsample(mask , count):
 
 	return mask
 
-def loss_4(relation_typs , no_rel , pred , anss , ents):
+def loss_4(relation_typs , no_rel , pred , anss , ents, class_weight = [1,0.5,0.5,1,5,0.5,1]):
 	'''
 		按类别加权，而且平衡正负例数量
 	'''
 	bs , ne , _ , d = pred.size()
 
-	class_weight = [1,0.5,0.5,1,5,0.5,1]
+
 	tot_loss = 0
 	tot_show = 0
 
@@ -64,47 +64,32 @@ def loss_4(relation_typs , no_rel , pred , anss , ents):
 
 
 
-def loss_3(relation_typs , no_rel , pred , anss , ents):
+def loss_3(relation_typs , no_rel , pred , anss , ents,
+		   class_weight = [1,0.5,0.5,1,5,0.5,0.05], pad_ix=-100):
 	'''
 		直接平均，按类别加权
 	'''
+	import numpy as np
 	bs , ne , _ , d = pred.size()
 
-	class_weight = [1,0.5,0.5,1,5,0.5,0.05]
-	tot_loss = 0
-	tot_show = 0
-
-	pred = -tc.log_softmax( pred , dim = -1)
+	num = 0
+	rel_map2 = np.zeros((bs, ne, ne))+no_rel
+	_ = [[rel_map2.itemset((i,u,v),t) for u,v,t in b] for i,b in enumerate(anss)]
+	rel_map2 = tc.LongTensor(rel_map2).to(pred.device)
 	for _b in range(bs):
+		tmp = rel_map2[_b] * 0 - 100
+		tmp[:len(ents[_b]) , :len(ents[_b])] = rel_map2[_b][:len(ents[_b]) , :len(ents[_b])]
+		rel_map2[_b] = tmp
+		num += len(ents[_b]) * len(ents[_b])
 
-		pad_mask = tc.zeros(ne , ne).cuda().bool()
-		pad_mask[:len(ents[_b]) , :len(ents[_b])] = 1
-
-		rel_map = tc.zeros(ne , ne).cuda().long() + no_rel
-		for u , v , t in anss[_b]:
-			rel_map[u , v] = t
-
-		loss_map = pred[_b].view(ne*ne,-1)[tc.arange(ne*ne) , rel_map.view(-1)].view(ne,ne)
-		for c in range(relation_typs):
-
-			c_mask = (rel_map == c)
-			c_loss = loss_map.masked_select(c_mask & pad_mask)
-
-			try:
-				assert (c_loss == c_loss).all()
-			except AssertionError:
-				print ("bad loss")
-				pdb.set_trace()
-
-			tot_loss += c_loss.sum() * class_weight[c]
-			tot_show += len(c_loss)
-
-	tot_loss = tot_loss / tot_show
-
-	return tot_loss
+	loss_f = F.cross_entropy(
+		pred.view(-1, pred.size(-1)), rel_map2.view(-1),
+		weight=tc.FloatTensor(class_weight).to(pred), ignore_index=-100, reduction='sum')
+	loss_f = loss_f / num
+	return loss_f
 
 
-def loss_1(relation_typs , no_rel , pred , anss , ents):
+def loss_1(relation_typs , no_rel , pred , anss , ents, class_weight=[1,0.5,0.5,1,5,0.5,0.05]):
 	'''
 		正负例分别加权平均
 	'''
@@ -143,14 +128,14 @@ def loss_1(relation_typs , no_rel , pred , anss , ents):
 	return tot_loss
 
 
-def loss_2(relation_typs , no_rel , pred , anss , ents):
+def loss_2(relation_typs , no_rel , pred , anss , ents, class_weight = [1,1,1,1,1,1,1]):
 	'''
 		所有类分别平均然后加权平均
 	'''
 	bs , ne , _ , d = pred.size()
 
 	neg_rate = 0.5
-	class_weight = [1,1,1,1,1,1,1]
+
 	tot_loss_class = [0.] * relation_typs
 	tot_show_class = [0 ] * relation_typs
 
