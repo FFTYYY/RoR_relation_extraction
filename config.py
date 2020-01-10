@@ -64,6 +64,8 @@ _par.add_argument("--gpus" 			, type = str , default = "0")
 _par.add_argument("--seed" 			, type = int , default = 2333)
 _par.add_argument("--log_file" 		, type = str , default = "log.txt")
 _par.add_argument("--no_log" 		, action = "store_true" , default = False)
+_par.add_argument("--info" 			, type = str , default = "") # just to let fitlog record sth
+_par.add_argument("--debug" 		, action = "store_true" , default = False) 
 
 #---------------------------------------------------------------------------------------------------
 
@@ -89,6 +91,10 @@ if C.no_log:
 C.tmp_file_name = random_tmp_name()
 
 #----- other stuff -----
+
+if C.debug:
+	fitlog.debug()
+
 fitlog.add_hyper(C)
 
 logger.log ("------------------------------------------------------")
