@@ -1,9 +1,14 @@
-#install data and env
+# install data and env
 sh prep_data_and_env.sh
 
-#train subtask2:
+# train subtask2:
+CUDA_VISIBLE_DEVICES=0 python train.py --model=graph_trans --ensemble=5
 
-CUDA_VISIBLE_DEVICES=0 python train.py --model=graph_trans --ensemble=5 --log_file=log
+# subtask2 , use test as valid
+CUDA_VISIBLE_DEVICES=0 python train.py --model=graph_trans --ensemble=5 \
+	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
+	--test_rels=./data/semeval_2018_task7/keys.test.2.txt
+
 
 #train subtask1.1:
 CUDA_VISIBLE_DEVICES=0 python train.py --model=graph_trans --ensemble=5 --rel_only \

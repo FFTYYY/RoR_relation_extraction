@@ -16,17 +16,18 @@ import fitlog
 fitlog.commit(__file__)
 
 def load_data(C , logger):
-	data_train , data_test, relations, rel_weights = read_data(
+	data_train , data_test , data_valid , relations, rel_weights = read_data(
 		logger , 
 		C.train_text_1 , C.train_rels_1 ,
 		C.train_text_2 , C.train_rels_2 ,
-		C.test_text , C.test_rels ,
+		C.test_text  , C.test_rels ,
+		C.valid_text , C.valid_rels ,
 		C.dataset, C.rel_weight_smooth, C.rel_weight_norm,
 	)
 
-	return data_train , data_test, relations, rel_weights
+	return data_train , data_test , data_valid , relations, rel_weights
 
-def train(C, logger, train_data , test_data , relations , rel_weights , n_rel_typs , no_rel , ensemble_id = 0):	
+def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel_typs , no_rel , ensemble_id = 0):	
 	#----- determine some arguments -----
 	assert len(rel_weights) == 7
 
@@ -45,6 +46,7 @@ def train(C, logger, train_data , test_data , relations , rel_weights , n_rel_ty
 
 	#----- iterate each epoch -----
 
+	best_macro_f1 = -1
 	for epoch_id in range(C.epoch_numb):
 
 		pbar = tqdm(range(batch_numb) , ncols = 70)
@@ -68,19 +70,25 @@ def train(C, logger, train_data , test_data , relations , rel_weights , n_rel_ty
 
 			avg_loss += float(loss)
 			fitlog.add_loss(value = float(loss) , step = epoch_id * batch_numb + batch_id , 
-					name = "(%d)train loss" % ensemble_id)
+					name = "({0})train loss".format(ensemble_id))
 
 			pbar.set_description_str("(Train)Epoch %d" % (epoch_id + 1))
 			pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
 		logger.log ("Epoch %d ended. avg_loss = %.4f" % (epoch_id + 1 , avg_loss / batch_numb))
 
 		#----- test -----
-		test(
+		micro_f1 , macro_f1 = test(
 			C , logger , 
-			test_data , model , 
+			valid_data , model , 
 			relations , rel_weights , no_rel , 
 			epoch_id , ensemble_id , 
 		)
+
+		if best_macro_f1 < macro_f1:
+			best_macro_f1 = macro_f1
+		#	fitlog.add_best_metric(best_macro_f1 , name = "({0})macro f1".format(ensemble_id))
+
+
 		model = model.train()
 
 	return model
@@ -89,7 +97,7 @@ if __name__ == "__main__":
 	from config import C, logger
 
 	#----- prepare data and some global variables -----
-	data_train , data_test, relations, rel_weights = load_data(C , logger)
+	data_train , data_test , data_valid , relations, rel_weights = load_data(C , logger)
 
 	if C.rel_only: # no no_rel
 		n_rel_typs , no_rel = len(relations) , -1
@@ -102,7 +110,7 @@ if __name__ == "__main__":
 	for i in range(C.ensemble_size):
 		model = train(
 			C , logger , 
-			data_train , data_test , 
+			data_train , data_valid , 
 			relations, rel_weights , n_rel_typs , no_rel , 
 			ensemble_id = i , 
 		)
@@ -110,12 +118,13 @@ if __name__ == "__main__":
 		trained_models.append(model)
 
 	#----- ensemble test -----
-	test(
+	micro_f1 , macro_f1 = test(
 		C , logger , 
 		data_test , trained_models , 
 		relations , rel_weights , no_rel , 
-		epoch_id = C.epoch_numb , ensemble_id = C.ensemble_size, 
+		epoch_id = C.epoch_numb , ensemble_id = 'final', 
 	)
+	#fitlog.add_best_metric(macro_f1 , name = "(final)macro f1")
 
 	#----- finish -----
 	fitlog.finish()

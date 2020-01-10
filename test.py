@@ -38,8 +38,8 @@ def test(C , logger , dataset , models , relations , rel_weights , no_rel , epoc
 		with tc.no_grad():
 
 		#----- get output & loss for each model -----
+			preds = [0 for _ in range(len(models))]
 			for i , model in enumerate(models):
-				preds = [0 for _ in range(len(models))]
 
 				old_device = next(model.parameters()).device
 				model = model.cuda()
@@ -85,9 +85,13 @@ def test(C , logger , dataset , models , relations , rel_weights , no_rel , epoc
 		micro_f1 , macro_f1 = get_f1([C.test_rels, C.train_rels_1, C.train_rels_2], C.test_rels, C.tmp_file_name)
 		micro_f1 , macro_f1 = micro_f1 * 100 , macro_f1 * 100
 
-	#----- scord the results -----
+	#----- record the results -----
+	#print (result)
 	logger.log ("Epoch {} tested. Micro F1 = {:.2f}% , Macro F1 = {:.2f}% , loss = {:.4f}".
 			format(epoch_id + 1 , micro_f1, macro_f1, avg_loss / batch_numb))
+	logger.log("\n")
 
-	fitlog.add_metric(micro_f1 , step = epoch_id , name = "(%d)micro f1" % (ensemble_id)) 
-	fitlog.add_metric(macro_f1 , step = epoch_id , name = "(%d)macro f1" % (ensemble_id)) 
+	fitlog.add_metric(micro_f1 , step = epoch_id , name = "({0})micro f1".format(ensemble_id)) 
+	fitlog.add_metric(macro_f1 , step = epoch_id , name = "({0})macro f1".format(ensemble_id)) 
+
+	return micro_f1 , macro_f1

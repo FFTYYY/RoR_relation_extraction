@@ -1,4 +1,5 @@
-semeval_2018_task7
+data/semeval_2018_task7
+data/ace*
 log.txt
 *.pyc
 sftp-config.json

@@ -248,9 +248,14 @@ def cut(logger , data , dtype = "train"):
 	return data
 
 
-def read_data(logger , file_train_text_1 , file_train_rels_1 , file_train_text_2 ,
-			  file_train_rels_2 , file_test_text , file_test_rels , dataset_type,
-			  rel_weight_smooth, rel_weight_norm):
+def read_data(
+		logger , 
+		file_train_text_1 , file_train_rels_1 , 
+		file_train_text_2 , file_train_rels_2 , 
+		file_test_text , file_test_rels , 
+		file_valid_text , file_valid_rels , 
+		dataset_type , rel_weight_smooth , rel_weight_norm , 
+	):
 
 	train_text_1 = get_file_content(file_train_text_1)
 	train_rels_1 = get_file_content(file_train_rels_1)
@@ -258,29 +263,44 @@ def read_data(logger , file_train_text_1 , file_train_rels_1 , file_train_text_2
 	train_rels_2 = get_file_content(file_train_rels_2)
 	test_text = get_file_content(file_test_text)
 	test_rels = get_file_content(file_test_rels)
+	valid_text = get_file_content(file_valid_text)
+	valid_rels = get_file_content(file_valid_rels)
 	return file_content2data(
 		logger , 
-		train_text_1, train_rels_1, train_text_2, train_rels_2,
-		test_text, test_rels, dataset_type, rel_weight_smooth,
-		rel_weight_norm
+		train_text_1 , train_rels_1 , 
+		train_text_2 , train_rels_2 , 
+		test_text , test_rels , 
+		valid_text , valid_rels , 
+		dataset_type , rel_weight_smooth , rel_weight_norm , 
 	)
 
-def file_content2data(logger , train_text_1 , train_rels_1 , train_text_2 , train_rels_2 ,
-			  test_text , test_rels , dataset_type, rel_weight_smooth,
-			  rel_weight_norm, verbose=True):
-	train_data_1 	= parse_a_text_file(logger , train_text_1 , dirty = False)
-	train_data_1,rel_list 	= parse_a_key_file(logger , train_data_1 , train_rels_1)
+def file_content2data(
+		logger , 
+		train_text_1 , train_rels_1 , 
+		train_text_2 , train_rels_2 ,
+		test_text , test_rels , 
+		valid_text , valid_rels , 
+		dataset_type , rel_weight_smooth , rel_weight_norm , verbose = True
+	):
 
-	train_data_2 = {}
-	train_data_2 	= parse_a_text_file(logger , train_text_2 , dirty = True)
-	train_data_2,rel_list2 	= parse_a_key_file(logger , train_data_2 , train_rels_2)
+	#----- read data files -----
+	train_data_1 				= parse_a_text_file(logger , train_text_1 , dirty = False)
+	train_data_1 , rel_list 	= parse_a_key_file (logger , train_data_1 , train_rels_1)
+
+	train_data_2 				= parse_a_text_file(logger , train_text_2 , dirty = True)
+	train_data_2 , rel_list2 	= parse_a_key_file (logger , train_data_2 , train_rels_2)
 	train_data = train_data_1
 	train_data.update(train_data_2)
 
-	test_data 	= parse_a_text_file(logger , test_text)
-	test_data,rel_list3 	= parse_a_key_file(logger , test_data , test_rels)
+	test_data 				= parse_a_text_file(logger , test_text)
+	test_data  , rel_list3 	= parse_a_key_file (logger , test_data , test_rels)
 
-	rel_list = rel_list + rel_list2 + rel_list3
+	valid_data 				= parse_a_text_file(logger , valid_text)
+	valid_data , rel_list4 	= parse_a_key_file (logger , valid_data , valid_rels)
+
+	#----- process relation list -----
+
+	rel_list  = rel_list + rel_list2 + rel_list3 + rel_list4
 	rel_count = Counter(rel_list)
 	relations = list(rel_count.keys())
 
@@ -298,19 +318,25 @@ def file_content2data(logger , train_text_1 , train_rels_1 , train_text_2 , trai
 		if rel_weight_norm:
 			rel_weights = np.array(rel_weights) / np.sum(rel_weights)
 
+	#----- tokenize & index -----
 	bert_type = "bert-base-uncased"
 	tokenizer = BertTokenizer.from_pretrained(bert_type)
 
 	for name , data in train_data.items():
 		train_data[name] = bertize(logger , tokenizer , data)
-	for name , data in test_data.items():
-		test_data[name]  = bertize(logger , tokenizer , data)
+	for name , data in  test_data.items():
+		test_data [name] = bertize(logger , tokenizer , data)
+	for name , data in valid_data.items():
+		valid_data[name] = bertize(logger , tokenizer , data)
 
 	for name , data in train_data.items():
 		train_data[name] = numberize(logger , tokenizer , data, relations)
-	for name , data in test_data.items():
-		test_data[name]  = numberize(logger , tokenizer , data, relations)
+	for name , data in  test_data.items():
+		test_data [name] = numberize(logger , tokenizer , data, relations)
+	for name , data in valid_data.items():
+		valid_data[name] = numberize(logger , tokenizer , data, relations)
 
+	#----- drop those who are too long to feed into bert ----
 	to_rem = []
 	for name , data in train_data.items():
 		got = cut(logger , data , "train")
@@ -322,28 +348,30 @@ def file_content2data(logger , train_text_1 , train_rels_1 , train_text_2 , trai
 	for x in to_rem:
 		train_data.pop(x)
 
-	to_rem = []
 	for name , data in test_data.items():
-		got = cut(logger , data , "test")
-		if got is not None:
-			test_data[name] = got
-		else:
-			to_rem.append(name)
-			logger.log ("*** droped one instance in test because too long")
-	for x in to_rem:
-		test_data.pop(x)
+		test_data[name] = cut(logger , data , "test")
+		assert test_data[name] is not None # don't drop test instance
 
+	for name , data in valid_data.items():
+		valid_data[name] = cut(logger , data , "test")
+		assert valid_data[name] is not None # also don't drop valid instance
+
+
+	#----- final process ----
 
 	#listize
 	train_data = [d for _ , d in train_data.items()]
-	test_data = [d for _ , d in test_data.items()]
+	test_data  = [d for _ , d in  test_data.items()]
+	valid_data = [d for _ , d in valid_data.items()]
 
 	random.shuffle(train_data)
 
-	if verbose: logger.log ("length of train / test data = %d / %d" % (len(train_data) , len(test_data)))
+	if verbose: 
+		logger.log ("length of train / test / valid data = %d / %d / %d" % (
+				len(train_data) , len(test_data) , len(valid_data) , 
+		))
 
-
-	return train_data , test_data, relations, rel_weights
+	return train_data , test_data , valid_data , relations , rel_weights
 
 
 if __name__ == "__main__":

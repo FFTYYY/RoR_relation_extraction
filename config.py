@@ -20,15 +20,16 @@ _par.add_argument("--train_text_1" 	, type = str , default = "./data/semeval_201
 _par.add_argument("--train_rels_1" 	, type = str , default = "./data/semeval_2018_task7/1.1.relations.txt")
 _par.add_argument("--train_text_2" 	, type = str , default = "./data/semeval_2018_task7/1.2.text.xml")
 _par.add_argument("--train_rels_2" 	, type = str , default = "./data/semeval_2018_task7/1.2.relations.txt")
+
+_par.add_argument("--valid_text" 	, type = str , default = "./data/semeval_2018_task7/1.1.test.text.xml")
+_par.add_argument("--valid_rels" 	, type = str , default = "./data/semeval_2018_task7/keys.test.1.1.txt")
+
 _par.add_argument("--test_text" 	, type = str , default = "./data/semeval_2018_task7/2.test.text.xml")
 _par.add_argument("--test_rels" 	, type = str , default = "./data/semeval_2018_task7/keys.test.2.txt")
-_par.add_argument("--test_script" 	, type = str , default = "./data/semeval_2018_task7/semeval2018_task7_scorer-v1.2.pl")
-_par.add_argument("--dataset", default = 'semeval_2018_task7')
 
-_par.add_argument("--rel_only" 				, action = "store_true" , default = False)
-_par.add_argument("--no_rel_weight" 		, type = float , default = 0.05)
-_par.add_argument("--rel_weight_smooth" 	, type = float , default = 0)
-_par.add_argument("--rel_weight_norm" 		, action = 'store_true')
+_par.add_argument("--test_script" 	, type = str , default = "./data/semeval_2018_task7/semeval2018_task7_scorer-v1.2.pl")
+_par.add_argument("--dataset" 		, default = 'semeval_2018_task7')
+_par.add_argument("--rel_only" 		, action = "store_true" , default = False)
 
 #model selection
 _par.add_argument("--model" 		, type = str , default = "naive_bert" , 
@@ -53,8 +54,13 @@ _par.add_argument("--n_warmup"		, type = int , default = 400)
 _par.add_argument("--test_mode" 	, action = "store_true" , default = False)
 _par.add_argument("--ensemble_size" , type = int , default = 5)
 
+
+_par.add_argument("--no_rel_weight" 		, type = float , default = 0.05)
+_par.add_argument("--rel_weight_smooth" 	, type = float , default = 0)
+_par.add_argument("--rel_weight_norm" 		, action = 'store_true')
+
 #others 
-_par.add_argument("--gpus" 			, type = str	, default = "0")
+_par.add_argument("--gpus" 			, type = str , default = "0")
 _par.add_argument("--seed" 			, type = int , default = 2333)
 _par.add_argument("--log_file" 		, type = str , default = "log.txt")
 _par.add_argument("--no_log" 		, action = "store_true" , default = False)

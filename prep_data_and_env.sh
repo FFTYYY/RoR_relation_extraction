@@ -3,6 +3,8 @@ curl -o data/semeval_2018_task7/2.test.text.xml https://lipn.univ-paris13.fr/~ga
 curl -o data/semeval_2018_task7/keys.test.2.txt https://lipn.univ-paris13.fr/~gabor/semeval2018task7/keys.test.2.txt
 curl -o data/semeval_2018_task7/1.1.text.xml https://lipn.univ-paris13.fr/~gabor/semeval2018task7/1.1.text.xml
 curl -o data/semeval_2018_task7/1.1.relations.txt https://lipn.univ-paris13.fr/~gabor/semeval2018task7/1.1.relations.txt
+curl -o data/semeval_2018_task7/1.1.test.text.xml https://lipn.univ-paris13.fr/~gabor/semeval2018task7/1.1.test.text.xml
+curl -o data/semeval_2018_task7/keys.test.1.1.txt https://lipn.univ-paris13.fr/~gabor/semeval2018task7/keys.test.1.1.txt
 
 curl -o data/semeval_2018_task7/1.2.text.xml https://lipn.univ-paris13.fr/~gabor/semeval2018task7/1.2.text.xml
 curl -o data/semeval_2018_task7/1.2.relations.txt https://lipn.univ-paris13.fr/~gabor/semeval2018task7/1.2.relations.txt
