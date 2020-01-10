@@ -66,6 +66,7 @@ _par.add_argument("--log_file" 		, type = str , default = "log.txt")
 _par.add_argument("--no_log" 		, action = "store_true" , default = False)
 _par.add_argument("--info" 			, type = str , default = "") # just to let fitlog record sth
 _par.add_argument("--debug" 		, action = "store_true" , default = False) 
+_par.add_argument("--no_valid" 		, action = "store_true" , default = False) # 是否使用验证集选择最好的参数来ensemble  
 
 #---------------------------------------------------------------------------------------------------
 

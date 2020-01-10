@@ -55,7 +55,7 @@ def test(C , logger , dataset , models , relations , rel_weights , no_rel , epoc
 			generated += generate(preds , data_ent , relations , no_rel , ans_rels = ans_rels)
 
 		
-		pbar.set_description_str("(Test )Epoch {0}".format(epoch_id + 1))
+		pbar.set_description_str("(Test )Epoch {0}".format(epoch_id))
 		pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
 
 	#----- evaluate from generated -----
@@ -66,7 +66,7 @@ def test(C , logger , dataset , models , relations , rel_weights , no_rel , epoc
 		os.system("perl {script} {output_file} {key_file} > {result_file}".format(
 			script 		= C.test_script ,
 			output_file = C.tmp_file_name,
-			key_file 	= C.test_rels ,
+			key_file 	= C.valid_rels ,
 			result_file = C.tmp_file_name + ".imm"
 		))
 		with open(C.tmp_file_name + ".imm" , "r" , encoding = "utf-8") as rfil:
@@ -87,8 +87,8 @@ def test(C , logger , dataset , models , relations , rel_weights , no_rel , epoc
 
 	#----- record the results -----
 	#print (result)
-	logger.log ("Epoch {} tested. Micro F1 = {:.2f}% , Macro F1 = {:.2f}% , loss = {:.4f}".
-			format(epoch_id + 1 , micro_f1, macro_f1, avg_loss / batch_numb))
+	logger.log ("-----Epoch {} tested. Micro F1 = {:.2f}% , Macro F1 = {:.2f}% , loss = {:.4f}".
+			format(epoch_id , micro_f1, macro_f1, avg_loss / batch_numb))
 	logger.log("\n")
 
 	fitlog.add_metric(micro_f1 , step = epoch_id , name = "({0})micro f1".format(ensemble_id)) 

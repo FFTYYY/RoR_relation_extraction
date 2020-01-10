@@ -12,6 +12,7 @@ from test import test
 from utils.train_util import pad_sents , get_data_from_batch
 from utils.scorer import get_f1
 import fitlog
+import pickle
 
 fitlog.commit(__file__)
 
@@ -46,6 +47,7 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 
 	#----- iterate each epoch -----
 
+	best_epoch = -1
 	best_macro_f1 = -1
 	for epoch_id in range(C.epoch_numb):
 
@@ -72,24 +74,35 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 			fitlog.add_loss(value = float(loss) , step = epoch_id * batch_numb + batch_id , 
 					name = "({0})train loss".format(ensemble_id))
 
-			pbar.set_description_str("(Train)Epoch %d" % (epoch_id + 1))
+			pbar.set_description_str("(Train)Epoch %d" % (epoch_id))
 			pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
-		logger.log ("Epoch %d ended. avg_loss = %.4f" % (epoch_id + 1 , avg_loss / batch_numb))
+		logger.log ("Epoch %d ended. avg_loss = %.4f" % (epoch_id , avg_loss / batch_numb))
 
-		#----- test -----
+		#----- valid -----
 		micro_f1 , macro_f1 = test(
 			C , logger , 
 			valid_data , model , 
-			relations , rel_weights , no_rel , 
-			epoch_id , ensemble_id , 
+			relations  , rel_weights , no_rel , 
+			epoch_id   , ensemble_id , 
 		)
 
 		if best_macro_f1 < macro_f1:
+			best_epoch = epoch_id
 			best_macro_f1 = macro_f1
+			with open(C.tmp_file_name + ".model" , "wb") as fil:
+				pickle.dump(model , fil)
+			
 		#	fitlog.add_best_metric(best_macro_f1 , name = "({0})macro f1".format(ensemble_id))
 
 
 		model = model.train()
+
+
+	if not C.no_valid:
+		with open(C.tmp_file_name + ".model" , "rb") as fil:
+			model = pickle.load(fil) #load best valid model
+
+	logger.log("reloaded best model at epoch %d" % best_epoch)
 
 	return model
 
@@ -124,7 +137,7 @@ if __name__ == "__main__":
 		relations , rel_weights , no_rel , 
 		epoch_id = C.epoch_numb , ensemble_id = 'final', 
 	)
-	#fitlog.add_best_metric(macro_f1 , name = "(final)macro f1")
+	fitlog.add_best_metric(macro_f1 , name = "(ensembled)macro f1")
 
 	#----- finish -----
 	fitlog.finish()
