@@ -48,7 +48,7 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 	#----- iterate each epoch -----
 
 	best_epoch = -1
-	best_macro_f1 = -1
+	best_metric = -1
 	for epoch_id in range(C.epoch_numb):
 
 		pbar = tqdm(range(batch_numb) , ncols = 70)
@@ -83,12 +83,12 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 			C , logger , 
 			valid_data , model , 
 			relations  , rel_weights , no_rel , 
-			epoch_id   , ensemble_id , 
+			"valid" , epoch_id   , ensemble_id , 
 		)
 
-		if best_macro_f1 < macro_f1:
+		if best_metric < macro_f1 * micro_f1:
 			best_epoch = epoch_id
-			best_macro_f1 = macro_f1
+			best_metric = macro_f1 * micro_f1
 			with open(C.tmp_file_name + ".model" , "wb") as fil:
 				pickle.dump(model , fil)
 			
@@ -113,7 +113,7 @@ if __name__ == "__main__":
 	data_train , data_test , data_valid , relations, rel_weights = load_data(C , logger)
 
 	if C.rel_only: # no no_rel
-		n_rel_typs , no_rel = len(relations) , -1
+		n_rel_typs , no_rel = len(relations)     , -1
 	else:
 		n_rel_typs , no_rel = len(relations) + 1 , len(relations)
 		rel_weights = rel_weights + [C.no_rel_weight]
@@ -135,9 +135,9 @@ if __name__ == "__main__":
 		C , logger , 
 		data_test , trained_models , 
 		relations , rel_weights , no_rel , 
-		epoch_id = C.epoch_numb , ensemble_id = 'final', 
+		mode = "test" , epoch_id = C.epoch_numb , ensemble_id = 'final', 
 	)
-	fitlog.add_best_metric(macro_f1 , name = "(ensembled)macro f1")
+	fitlog.add_hyper(macro_f1 , name = "(ensembled)macro f1")
 
 	#----- finish -----
 	fitlog.finish()

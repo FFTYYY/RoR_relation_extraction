@@ -13,11 +13,18 @@ import re
 
 fitlog.commit(__file__)
 
-def test(C , logger , dataset , models , relations , rel_weights , no_rel , epoch_id = 0 , ensemble_id = 0):
+def test(
+		C , logger , 
+		dataset , models , 
+		relations , rel_weights , no_rel , 
+		mode = "valid" , epoch_id = 0 , ensemble_id = 0 , 
+	):
 	#----- determine some arguments and prepare model -----
 
 	if isinstance(models , tc.nn.Module):
 		models = [models]
+	for i in range(len(models)):
+		models[i] = models[i].eval()
 
 	batch_size = 8
 	batch_numb = (len(dataset) // batch_size) + int((len(dataset) % batch_size) != 0)
@@ -63,14 +70,19 @@ def test(C , logger , dataset , models , relations , rel_weights , no_rel , epoc
 	if C.dataset == 'semeval_2018_task7':
 		with open(C.tmp_file_name , "w" , encoding = "utf-8") as ofil:
 			ofil.write(generated)
+
+		key_file = C.valid_rels if mode == "valid" else C.test_rels
+
 		os.system("perl {script} {output_file} {key_file} > {result_file}".format(
 			script 		= C.test_script ,
 			output_file = C.tmp_file_name,
-			key_file 	= C.valid_rels ,
+			key_file 	= key_file ,
 			result_file = C.tmp_file_name + ".imm"
 		))
 		with open(C.tmp_file_name + ".imm" , "r" , encoding = "utf-8") as rfil:
 			result = rfil.read()
+
+		#pdb.set_trace()
 
 		if not result.strip(): #submission is empty
 			micro_f1 = 0
