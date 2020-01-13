@@ -1,5 +1,7 @@
 data/semeval_2018_task7
 data/ace*
+data/docred
+watch/*
 log.txt
 *.pyc
 sftp-config.json

@@ -89,7 +89,7 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 		if best_metric < macro_f1 * micro_f1:
 			best_epoch = epoch_id
 			best_metric = macro_f1 * micro_f1
-			with open(C.tmp_file_name + ".model" , "wb") as fil:
+			with open(C.tmp_file_name + ".model" + "." + str(ensemble_id) , "wb") as fil:
 				pickle.dump(model , fil)
 			
 		#	fitlog.add_best_metric(best_macro_f1 , name = "({0})macro f1".format(ensemble_id))
@@ -99,7 +99,7 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 
 
 	if not C.no_valid:
-		with open(C.tmp_file_name + ".model" , "rb") as fil:
+		with open(C.tmp_file_name + ".model" + "." + str(ensemble_id) , "rb") as fil:
 			model = pickle.load(fil) #load best valid model
 
 	logger.log("reloaded best model at epoch %d" % best_epoch)
@@ -138,6 +138,12 @@ if __name__ == "__main__":
 		mode = "test" , epoch_id = C.epoch_numb , ensemble_id = 'final', 
 	)
 	fitlog.add_hyper(macro_f1 , name = "(ensembled)macro f1")
+
+	#----- save ensembled model -----
+	if C.model_save:
+		with open(C.model_save , "wb") as fil:
+			pickle.dump(trained_models , fil)
+	logger.log("final model saved at %s" % C.model_save)
 
 	#----- finish -----
 	fitlog.finish()
