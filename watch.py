@@ -25,7 +25,7 @@ fitlog.debug()
 fitlog.commit(__file__)
 
 def load_data(C , logger):
-	data_train , data_test , data_valid , relations, rel_weights = read_data(
+	data_train , data_test , data_valid , relations, rel_weights = read_data(C.dataset)(
 		logger , 
 		C.train_text_1 , C.train_rels_1 ,
 		C.train_text_2 , C.train_rels_2 ,
@@ -46,18 +46,18 @@ def generate_output(
 	bert_type = "bert-base-uncased"
 	tokenizer = BertTokenizer.from_pretrained(bert_type)
 
-
-	if isinstance(models , tc.nn.Module):
-		models = [models]
-	for i in range(len(models)):
-		models[i] = models[i].eval()
+	if models is not None:
+		if isinstance(models , tc.nn.Module):
+			models = [models]
+		for i in range(len(models)):
+			models[i] = models[i].eval()
 
 	readable_info = ""
 	model_output = []
 	dataset_info = []
 
 	#----- gene -----
-	dataset = dataset[:5]
+	#dataset = dataset[:5]
 	pbar = tqdm(range(len(dataset)) , ncols = 70)
 	generated = ""
 	for text_id in pbar:
@@ -92,7 +92,7 @@ def generate_output(
 		for i in range(len(ents)):
 			ents[i].append(tokenizer.decode(sents[0][ents[i][0] : ents[i][1]]))
 			ents[i][0] = len(tokenizer.decode(sents[0][1:ents[i][0]]))+1 #前方的字符数(+1 is for space)
-			ents[i][1] = len(tokenizer.decode(sents[0][1:ents[i][1]]))+1 #前方的字符数
+			ents[i][1] = len(tokenizer.decode(sents[0][1:ents[i][1]]))   #前方的字符数
 			ents[i] = [i] + ents[i]
 		
 		# golden answer
@@ -128,7 +128,7 @@ def generate_output(
 			{
 				"doc_id" : text_id+1,
 				"text" : text,
-				"entity_set" : ents,
+				"entity_set" : [[int(idx),int(l),int(r),cont] for idx,l,r,cont in ents],
 				"list_of_relations" : [[x[0],x[1],relations.index(x[2])] for x in golden_ans] , 
 			}
 		)
@@ -160,7 +160,14 @@ if __name__ == "__main__":
 	from config import C, logger
 
 	#----- prepare data and some global variables -----
-	_ , data_test , _ , relations, _ = load_data(C , logger)
+	data_train , data_test , data_valid , relations, _ = load_data(C , logger)
+
+	if C.watch_type == "train":
+		data_watch = data_train
+	if C.watch_type == "test":
+		data_watch = data_test
+	if C.watch_type == "valid":
+		data_watch = data_valid
 
 	if C.rel_only: # no no_rel
 		no_rel = -1
@@ -169,10 +176,12 @@ if __name__ == "__main__":
 
 
 	#----- load model -----
-	with open(C.model_save , "rb") as fil:
-		trained_models = pickle.load(fil)
-
+	if C.model_save:
+		with open(C.model_save , "rb") as fil:
+			trained_models = pickle.load(fil)
+	else:
+		trained_models = None
 
 	#----- generate -----
 
-	generate_output(C , logger , data_test , trained_models , relations , no_rel)
+	generate_output(C , logger , data_watch , trained_models , relations , no_rel)

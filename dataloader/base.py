@@ -20,12 +20,11 @@ class Relation:
 		self.type = type
 
 class Data:
-	def __init__(self , text_id , title , abstract , ents):
+	def __init__(self , text_id = None , title = "" , abstract = "" , ents = []):
 		self.text_id = text_id
 		self.title = title.strip()
 		self.abs = abstract.strip()
 		self.ents = ents
-
 		self.ans = []
 
 		self.ent_names = [x.name for x in self.ents]

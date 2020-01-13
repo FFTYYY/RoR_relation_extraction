@@ -9,7 +9,6 @@ from utils.tmp_file import random_tmp_name
 import fitlog
 
 fitlog.commit(__file__)
-fitlog.set_log_dir("logs")
 
 _par = argparse.ArgumentParser()
 
@@ -67,8 +66,11 @@ _par.add_argument("--no_log" 		, action = "store_true" , default = False)
 _par.add_argument("--info" 			, type = str , default = "") # just to let fitlog record sth
 _par.add_argument("--debug" 		, action = "store_true" , default = False) 
 _par.add_argument("--no_valid" 		, action = "store_true" , default = False) # 是否使用验证集选择最好的参数来ensemble  
+
+# for watch
 _par.add_argument("--model_save" 	, type = str , default = "") # 保存最终的（ensemble的）模型的文件名
 _par.add_argument("--gene_file" 	, type = str , default = "watch/gene") # 保存生成结果的文件
+_par.add_argument("--watch_type" 	, type = str , default = "test") # 保存生成结果的文件
 
 #---------------------------------------------------------------------------------------------------
 
@@ -79,7 +81,7 @@ C = _par.parse_args()
 for file in [C.train_text_1 , C.train_rels_1 , C.train_text_2 , C.train_rels_2 , C.test_text , C.test_rels ]:
 	if C.dataset not in file:
 		print('[Warn] Dataset and training files do not match.')
-		import pdb;pdb.set_trace()
+		#import pdb;pdb.set_trace()
 
 #----- make logger -----
 
@@ -98,6 +100,7 @@ C.tmp_file_name = random_tmp_name()
 if C.debug:
 	fitlog.debug()
 
+fitlog.set_log_dir("logs")
 fitlog.add_hyper(C)
 
 logger.log ("------------------------------------------------------")

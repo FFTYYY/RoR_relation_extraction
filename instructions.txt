@@ -16,3 +16,12 @@ CUDA_VISIBLE_DEVICES=3 python train.py --model=graph_trans --ensemble=5 \
 #train subtask1.1:
 CUDA_VISIBLE_DEVICES=0 python train.py --model=graph_trans --ensemble=5 --rel_only \
     --test_text=semeval_2018_task7/1.1.test.text.xml --test_rels=semeval_2018_task7/keys.test.1.1.txt --log_file=log
+
+
+
+
+#ace:
+--train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-ng14/all_nobctest.json \
+--valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-ng14/bc_test.json \
+--test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-ng14/bc_dev.json \
+--dataset=ace_2005

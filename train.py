@@ -17,7 +17,7 @@ import pickle
 fitlog.commit(__file__)
 
 def load_data(C , logger):
-	data_train , data_test , data_valid , relations, rel_weights = read_data(
+	data_train , data_test , data_valid , relations, rel_weights = read_data(C.dataset)(
 		logger , 
 		C.train_text_1 , C.train_rels_1 ,
 		C.train_text_2 , C.train_rels_2 ,
