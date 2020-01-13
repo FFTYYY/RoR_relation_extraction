@@ -65,7 +65,7 @@ class FakeFile:
 	def write(self , x = ""):
 		self.buf += x
 
-def generate(preds , data_ent , relations , no_rel , ans_rels = None):
+def generate(preds , data_ent , relations , no_rel , ans_rels = None , give_me_pred = False):
 		
 	#----- average predicted scores -----
 	pred = 0
@@ -78,4 +78,6 @@ def generate(preds , data_ent , relations , no_rel , ans_rels = None):
 	fil = FakeFile()
 	generate_from_pred(pred , data_ent , relations , fil , no_rel , ans_rels = ans_rels)
 
+	if give_me_pred:
+		return fil.buf , pred
 	return fil.buf
