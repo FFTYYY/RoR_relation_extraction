@@ -19,6 +19,10 @@ def parse_a_text_file(logger , cont , dirty = False):
 		try:
 			x = x.strip().replace("\n" , " ").replace("\t" , " ")
 			x = x[10:] #remove  <text id=\"
+			assert '"' in x, "the quote sign is not in text string"
+			text_id, x = x.split('"', 1)
+			x = '"' + x
+
 			text_id , x = x[:8] , x[8:] #text id 一定是XXX-XXXX
 
 			x = x.split("<title>")[1].strip() #remove <title>

@@ -1,18 +1,16 @@
 import numpy as np
-import fitlog
-
-fitlog.commit(__file__)
 
 __all__ = ['get_f1']
 
 NO_REL = 'NONE'
 
-def get_f1(file_list, gold_file, pred_file):
+def get_f1(gold_file, pred_file, is_file_content=False, precision=4):
     from sklearn.metrics import f1_score
-    rel_str2id = _get_rels(file_list)
+    rel_str2id = _get_rels([gold_file, pred_file], is_file_content)
+    classes = rel_str2id.classes_
 
-    gold_labels = _get_data(gold_file)
-    pred_labels = _get_data(pred_file)
+    gold_labels = _get_data(gold_file, classes, is_file_content=is_file_content)
+    pred_labels = _get_data(pred_file, classes, is_file_content=is_file_content)
     keys = sorted(set(gold_labels.keys()) | set(pred_labels.keys()))
 
     gold = [gold_labels.get(k, NO_REL) for k in keys]
@@ -20,17 +18,21 @@ def get_f1(file_list, gold_file, pred_file):
     gold = rel_str2id.transform(gold)
     pred = rel_str2id.transform(pred)
 
-    pos_classes = set(rel_str2id.classes_) - {NO_REL}
+    pos_classes = set(classes) - {NO_REL}
     pos_labels = rel_str2id.transform(list(pos_classes))
     f1_micro = f1_score(gold, pred, average='micro', labels=pos_labels, zero_division=0)
     f1_macro = f1_score(gold, pred, average='macro', labels=pos_labels, zero_division=0)
-    return f1_micro, f1_macro
+    return round(f1_micro, precision), round(f1_macro, precision)
 
     # gold_matrix = _file2matrix(gold_file)
 
-def _get_data(file):
-    with open(file) as f:
-        data = [line.strip() for line in f if line.strip()]
+def _get_data(file, classes, is_file_content=False):
+    if not is_file_content:
+        with open(file) as f:
+            file_content = f.read()
+    else:
+        file_content = file
+    data = [line.strip() for line in file_content.split('\n') if line.strip()]
 
     rel_labels = {}
     for line in data:
@@ -45,19 +47,27 @@ def _get_data(file):
             key = (doc_id, (ent1, ent0))
         else:
             key = (doc_id, (ent0, ent1))
-        rel_labels[key] = rel_str
+        if rel_str not in classes:
+            from efficiency.log import show_var
+            show_var(['file', 'data'])
+            print('[Warn] rel_str({}) is not among pre-defined classes({})'.format(line, classes))
+        else:
+            rel_labels[key] = rel_str
     # assert len(rel_labels) == len(data), "# lines does not match with # data"
 
     return rel_labels
 
 
-def _get_rels(file_list):
+def _get_rels(file_list, is_file_content=False):
     from sklearn.preprocessing import LabelEncoder
 
     data = []
     for file in file_list:
-        with open(file) as f:
-            data += [line.strip() for line in f if line.strip()]
+        if is_file_content:
+            data += [line.strip() for line in file.split('\n') if line.strip()]
+        else:
+            with open(file) as f:
+                data += [line.strip() for line in f if line.strip()]
 
     relations = [NO_REL]
     for line in data:

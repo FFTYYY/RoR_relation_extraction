@@ -94,7 +94,7 @@ def test(
 		os.system("rm %s" % C.tmp_file_name)
 		os.system("rm %s.imm" % C.tmp_file_name)
 	else:
-		micro_f1 , macro_f1 = get_f1([C.test_rels, C.train_rels_1, C.train_rels_2], C.test_rels, C.tmp_file_name)
+		micro_f1 , macro_f1 = get_f1(C.test_rels, C.tmp_file_name)
 		micro_f1 , macro_f1 = micro_f1 * 100 , macro_f1 * 100
 
 	#----- record the results -----
