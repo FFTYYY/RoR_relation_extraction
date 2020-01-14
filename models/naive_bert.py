@@ -7,14 +7,14 @@ import math
 from .loss_func import *
 
 class Model(nn.Module):
-	def __init__(self , bert_type = "bert-base-uncased" , n_rel_typs = 7 , dropout = 0.0):
+	def __init__(self , bert_type = "bert-base-uncased" , n_rel_typs = 7 , dropout = 0.0, device=tc.device(0)):
 		super().__init__()
 
 		self.d_model = 768
 		self.n_rel_typs = n_rel_typs
 		self.dropout = dropout
 
-		self.bert = BertModel.from_pretrained(bert_type).cuda()
+		self.bert = BertModel.from_pretrained(bert_type).to(device)
 		self.bertdrop = nn.Dropout(self.dropout)
 
 		self.wq = nn.Linear(self.d_model , self.d_model)
@@ -64,7 +64,7 @@ class Model(nn.Module):
 
 
 		segm_index = s.new_zeros(s.size())
-		posi_index = tc.arange(n).view(1,n).expand(bs , n).cuda()
+		posi_index = tc.arange(n).view(1,n).expand(bs , n).to(s.device)
 		sent_mask  = (sents != 0)
 
 		outputs  = self.bert(

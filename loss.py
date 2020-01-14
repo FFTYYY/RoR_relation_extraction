@@ -25,12 +25,13 @@ def loss_4(relation_typs , no_rel , pred , anss , ents, class_weight = [1,0.5,0.
 	tot_show = 0
 
 	pred = -tc.log_softmax( pred , dim = -1)
+	device = pred.device
 	for _b in range(bs):
 
-		pad_mask = tc.zeros(ne , ne).cuda().bool()
+		pad_mask = tc.zeros(ne , ne).to(device).bool()
 		pad_mask[:len(ents[_b]) , :len(ents[_b])] = 1
 
-		rel_map = tc.zeros(ne , ne).cuda().long() + no_rel
+		rel_map = tc.zeros(ne , ne).to(device).long() + no_rel
 		for u , v , t in anss[_b]:
 			rel_map[u , v] = t
 
@@ -103,12 +104,13 @@ def loss_1(relation_typs , no_rel , pred , anss , ents, class_weight=[1,0.5,0.5,
 	tot_neg_loss = 0.
 
 	pred = -tc.log_softmax( pred , dim = -1)
+	device = pred.device
 	for _b in range(bs):
 
-		pad_mask = tc.zeros(ne , ne).cuda().bool()
+		pad_mask = tc.zeros(ne , ne).to(device).bool()
 		pad_mask[:len(ents[_b]) , :len(ents[_b])] = 1
 
-		rel_map = tc.zeros(ne , ne).cuda().long() + no_rel
+		rel_map = tc.zeros(ne , ne).to(device).long() + no_rel
 		for u , v , t in anss[_b]:
 			rel_map[u , v] = t
 
@@ -143,12 +145,13 @@ def loss_2(relation_typs , no_rel , pred , anss , ents, class_weight = [1,1,1,1,
 	tot_show_class = [0 ] * relation_typs
 
 	pred = -tc.log_softmax( pred , dim = -1)
+	device = pred.device
 	for _b in range(bs):
 
-		pad_mask = tc.zeros(ne , ne).cuda().bool()
+		pad_mask = tc.zeros(ne , ne).to(device).bool()
 		pad_mask[:len(ents[_b]) , :len(ents[_b])] = 1
 
-		rel_map = tc.zeros(ne , ne).cuda().long() + no_rel
+		rel_map = tc.zeros(ne , ne).to(device).long() + no_rel
 		for u , v , t in anss[_b]:
 			rel_map[u , v] = t
 

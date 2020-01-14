@@ -26,6 +26,7 @@ def test(
 	for i in range(len(models)):
 		models[i] = models[i].eval()
 
+	device = tc.device(C.device)
 	batch_size = 8
 	batch_numb = (len(dataset) // batch_size) + int((len(dataset) % batch_size) != 0)
 	loss_func = loss_funcs[C.loss]
@@ -40,7 +41,7 @@ def test(
 		#----- get data -----
 
 		data = dataset[batch_id * batch_size : (batch_id+1) * batch_size]
-		sents , ents , anss , data_ent = get_data_from_batch(data)
+		sents , ents , anss , data_ent = get_data_from_batch(data, device=tc.device(C.device))
 
 		with tc.no_grad():
 
@@ -49,7 +50,7 @@ def test(
 			for i , model in enumerate(models):
 
 				old_device = next(model.parameters()).device
-				model = model.cuda()
+				model = model.to(device)
 				preds[i] = model(sents , ents)
 				model = model.to(old_device) #如果他本来在cpu上，生成完之后还是把他放回cpu
 

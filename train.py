@@ -33,9 +33,10 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 	assert len(rel_weights) == 7
 
 	batch_numb = (len(train_data) // C.batch_size) + int((len(train_data) % C.batch_size) != 0)
+	device = tc.device(C.device)
 
 	#----- get model and other training tools -----
-	model = models[C.model](n_rel_typs = n_rel_typs , dropout = C.dropout).cuda()
+	model = models[C.model](n_rel_typs = n_rel_typs , dropout = C.dropout, device = device).to(device)
 
 	optimizer = tc.optim.Adam(params = model.parameters() , lr = C.lr)
 	scheduler = get_cosine_schedule_with_warmup(
@@ -56,7 +57,7 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 		for batch_id in pbar:
 			#----- get data -----
 			data = train_data[batch_id * C.batch_size : (batch_id+1) * C.batch_size]
-			sents , ents , anss , data_ent = get_data_from_batch(data)
+			sents , ents , anss , data_ent = get_data_from_batch(data, device=device)
 
 			#----- forward -----
 			pred = model(sents , ents)

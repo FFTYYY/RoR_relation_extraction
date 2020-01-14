@@ -123,3 +123,4 @@ if C.seed > 0:
 	logger.log ("Seed set. %d" % (C.seed))
 
 tc.cuda.set_device(C.gpus[0])
+C.device = C.gpus[0]

@@ -52,6 +52,8 @@ def generate_output(
 		for i in range(len(models)):
 			models[i] = models[i].eval()
 
+	device = tc.device(C.device)
+
 	readable_info = ""
 	model_output = []
 	dataset_info = []
@@ -64,7 +66,7 @@ def generate_output(
 		#----- get data -----
 
 		data = dataset[text_id:text_id+1]
-		sents , ents , anss , data_ent = get_data_from_batch(data)
+		sents , ents , anss , data_ent = get_data_from_batch(data, device=tc.device(C.device))
 
 		if models is not None:
 			with tc.no_grad():
@@ -73,7 +75,7 @@ def generate_output(
 				for i , model in enumerate(models):
 
 					old_device = next(model.parameters()).device
-					model = model.cuda()
+					model = model.to(device)
 					preds[i] = model(sents , ents)
 					model = model.to(old_device) #如果他本来在cpu上，生成完之后还是把他放回cpu
 
