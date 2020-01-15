@@ -1,13 +1,12 @@
 import os , sys
-sys.path.append("..")
 import numpy as np
 import pdb
 import random
 import fitlog
-from dataloader.base import *
+from .base import *
 import json
 
-fitlog.commit(__file__)
+#fitlog.commit(__file__)
 
 def parse_a_file(logger , file_text):
 

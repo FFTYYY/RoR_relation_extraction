@@ -1,4 +1,3 @@
-from dataloader import read_data
 from tqdm import tqdm
 import torch as tc
 import pdb
@@ -11,7 +10,7 @@ from utils.train_util import pad_sents , get_data_from_batch
 import fitlog
 import re
 
-fitlog.commit(__file__)
+#fitlog.commit(__file__)
 
 def test(
 		C , logger , 

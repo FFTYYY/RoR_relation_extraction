@@ -1,7 +1,7 @@
-from dataloader import read_data
+from dataloader import get_dataloader
 from tqdm import tqdm
 import torch as tc
-from models import models
+from models import get_model
 import pdb
 import os , sys
 import math
@@ -13,11 +13,12 @@ from utils.train_util import pad_sents , get_data_from_batch
 from utils.scorer import get_f1
 import fitlog
 import pickle
+from config import get_config
 
-fitlog.commit(__file__)
+#fitlog.commit(__file__)
 
 def load_data(C , logger):
-	data_train , data_test , data_valid , relations, rel_weights = read_data(C.dataset)(
+	data_train , data_test , data_valid , relations, rel_weights = get_dataloader(C.dataset)(
 		logger , 
 		C.train_text_1 , C.train_rels_1 ,
 		C.train_text_2 , C.train_rels_2 ,
@@ -36,7 +37,7 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 	device = tc.device(C.device)
 
 	#----- get model and other training tools -----
-	model = models[C.model](n_rel_typs = n_rel_typs , dropout = C.dropout, device = device).to(device)
+	model = get_model(C.model)(n_rel_typs = n_rel_typs , dropout = C.dropout, device = device).to(device)
 
 	optimizer = tc.optim.Adam(params = model.parameters() , lr = C.lr)
 	scheduler = get_cosine_schedule_with_warmup(
@@ -108,7 +109,8 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 	return model
 
 if __name__ == "__main__":
-	from config import C, logger
+
+	C , logger = get_config()
 
 	#----- prepare data and some global variables -----
 	data_train , data_test , data_valid , relations, rel_weights = load_data(C , logger)

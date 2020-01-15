@@ -8,8 +8,8 @@ import fitlog
 from base import *
 import json
 
-fitlog.debug()
-fitlog.commit(__file__)
+#fitlog.debug()
+#fitlog.commit(__file__)
 
 def parse_a_file(text):
 	c = json.loads(text)

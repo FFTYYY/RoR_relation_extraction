@@ -2,7 +2,7 @@
 	watch trained model results
 '''
 from transformers import BertModel , BertTokenizer
-from dataloader import read_data
+from dataloader import get_dataloader
 from tqdm import tqdm
 import torch as tc
 from models import models
@@ -20,12 +20,13 @@ import pickle
 import re
 from YTools.universe.beautiful_str import beautiful_str
 import json
+from config import get_config
 
-fitlog.debug()
-fitlog.commit(__file__)
+#fitlog.debug()
+#fitlog.commit(__file__)
 
 def load_data(C , logger):
-	data_train , data_test , data_valid , relations, rel_weights = read_data(C.dataset)(
+	data_train , data_test , data_valid , relations, rel_weights = get_dataloader(C.dataset)(
 		logger , 
 		C.train_text_1 , C.train_rels_1 ,
 		C.train_text_2 , C.train_rels_2 ,
@@ -159,8 +160,8 @@ def generate_output(
 
 
 if __name__ == "__main__":
-	from config import C, logger
-
+	C , logger = get_config()
+	
 	#----- prepare data and some global variables -----
 	data_train , data_test , data_valid , relations, _ = load_data(C , logger)
 

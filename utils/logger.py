@@ -1,7 +1,7 @@
 from .watch_time import time_str
 import fitlog
 
-fitlog.commit(__file__)
+#fitlog.commit(__file__)
 
 class Logger:
 	def __init__(self , fil_path = None):
