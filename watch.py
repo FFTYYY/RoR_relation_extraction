@@ -97,6 +97,8 @@ def generate_output(
 			#----- form data structure -----
 			# text
 			tmp_sents = sents[text_id]
+			while tmp_sents[-1] == 0: # remove padding
+				tmp_sents = tmp_sents[:-1]
 			text = tokenizer.decode(tmp_sents[1:-1])
 
 			# entitys
