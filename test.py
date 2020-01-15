@@ -10,16 +10,13 @@ from utils.train_util import pad_sents , get_data_from_batch
 import fitlog
 import re
 
-#fitlog.commit(__file__)
 
-def test(
-		C , logger , 
+def before_test(C , logger , 
 		dataset , models , 
 		relations , rel_weights , no_rel , 
-		mode = "valid" , epoch_id = 0 , ensemble_id = 0 , 
+		mode = "valid" , epoch_id = 0 , ensemble_id = 0 
 	):
-	#----- determine some arguments and prepare model -----
-
+	
 	if isinstance(models , tc.nn.Module):
 		models = [models]
 	for i in range(len(models)):
@@ -30,48 +27,35 @@ def test(
 	batch_numb = (len(dataset) // batch_size) + int((len(dataset) % batch_size) != 0)
 	loss_func = loss_funcs[C.loss]
 
-	#----- test -----
+	return device , batch_size , batch_numb , models , loss_func
 
-	pbar = tqdm(range(batch_numb) , ncols = 70)
-	avg_loss = 0
-	generated = ""
-	for batch_id in pbar:
+def get_output(C , logger , 
+		no_rel , rel_weights , relations , 
+		models , device , loss_func , 
+		sents , ents , anss , data_ent , 
+	):
+	preds = [0 for _ in range(len(models))]
+	for i , model in enumerate(models):
 
-		#----- get data -----
+		old_device = next(model.parameters()).device
+		model = model.to(device)
+		preds[i] = model(sents , ents)
+		model = model.to(old_device) #如果他本来在cpu上，生成完之后还是把他放回cpu
 
-		data = dataset[batch_id * batch_size : (batch_id+1) * batch_size]
-		sents , ents , anss , data_ent = get_data_from_batch(data, device=tc.device(C.device))
+		loss = loss_func(preds[i] , anss , ents , no_rel = no_rel , class_weight = rel_weights)
 
-		with tc.no_grad():
+	ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss] if C.rel_only else None
+	generated = generate(preds , data_ent , relations , no_rel , ans_rels = ans_rels)
 
-		#----- get output & loss for each model -----
-			preds = [0 for _ in range(len(models))]
-			for i , model in enumerate(models):
+	return model , preds , loss , generated
 
-				old_device = next(model.parameters()).device
-				model = model.to(device)
-				preds[i] = model(sents , ents)
-				model = model.to(old_device) #如果他本来在cpu上，生成完之后还是把他放回cpu
-
-				loss = loss_func(preds[i] , anss , ents , no_rel = no_rel , class_weight = rel_weights)
-				avg_loss += float(loss) / len(models)
-
-		#----- get generated output -----
-
-			ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss] if C.rel_only else None
-			generated += generate(preds , data_ent , relations , no_rel , ans_rels = ans_rels)
-
-		
-		pbar.set_description_str("(Test )Epoch {0}".format(epoch_id))
-		pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
-
-	#----- evaluate from generated -----
+def get_evaluate(C , logger , mode , generated):
+	key_file = C.valid_rels if mode == "valid" else C.test_rels
 
 	if C.dataset == 'semeval_2018_task7':
 		with open(C.tmp_file_name , "w" , encoding = "utf-8") as ofil:
 			ofil.write(generated)
 
-		key_file = C.valid_rels if mode == "valid" else C.test_rels
 
 		os.system("perl {script} {output_file} {key_file} > {result_file}".format(
 			script 		= C.test_script ,
@@ -94,10 +78,44 @@ def test(
 		os.system("rm %s" % C.tmp_file_name)
 		os.system("rm %s.imm" % C.tmp_file_name)
 	else:
-		micro_f1 , macro_f1 = get_f1(C.test_rels, C.tmp_file_name)
+		micro_f1 , macro_f1 = get_f1(key_file, C.tmp_file_name)
 		micro_f1 , macro_f1 = micro_f1 * 100 , macro_f1 * 100
+	return micro_f1 , macro_f1
 
-	#----- record the results -----
+
+def test(C , logger , 
+		dataset , models , 
+		relations , rel_weights , no_rel , 
+		mode = "valid" , epoch_id = 0 , ensemble_id = 0 , need_generated = False , 
+	):
+	
+	device , batch_size , batch_numb , models , loss_func = before_test(
+		C,logger,dataset,models,relations,rel_weights,no_rel,mode,epoch_id,ensemble_id
+	)
+
+
+	pbar = tqdm(range(batch_numb) , ncols = 70)
+	avg_loss = 0
+	generated = ""
+	for batch_id in pbar:
+
+
+		data = dataset[batch_id * batch_size : (batch_id+1) * batch_size]
+		sents , ents , anss , data_ent = get_data_from_batch(data, device=tc.device(C.device))
+
+		with tc.no_grad():
+			model , preds , loss , partial_generated = get_output(
+				C,logger,no_rel,rel_weights,relations,models,device,loss_func,sents,ents,anss,data_ent
+			)
+		generated += partial_generated
+		avg_loss += float(loss) / len(models)
+
+		
+		pbar.set_description_str("(Test )Epoch {0}".format(epoch_id))
+		pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
+
+	micro_f1 , macro_f1 = get_evaluate(C , logger , mode , generated)
+
 	#print (result)
 	logger.log ("-----Epoch {} tested. Micro F1 = {:.2f}% , Macro F1 = {:.2f}% , loss = {:.4f}".
 			format(epoch_id , micro_f1, macro_f1, avg_loss / batch_numb))
@@ -106,4 +124,7 @@ def test(
 	fitlog.add_metric(micro_f1 , step = epoch_id , name = "({0})micro f1".format(ensemble_id)) 
 	fitlog.add_metric(macro_f1 , step = epoch_id , name = "({0})macro f1".format(ensemble_id)) 
 
-	return micro_f1 , macro_f1
+	if need_generated:
+		return micro_f1 , macro_f1 , avg_loss , generated
+
+	return micro_f1 , macro_f1 , avg_loss

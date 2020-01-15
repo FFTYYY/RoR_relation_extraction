@@ -29,15 +29,14 @@ def load_data(C , logger):
 
 	return data_train , data_test , data_valid , relations, rel_weights
 
-def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel_typs , no_rel , ensemble_id = 0):	
-	#----- determine some arguments -----
+def before_train(C , logger , train_data , valid_data , relations , rel_weights , n_rel_typs , no_rel , ensemble_id):
 	assert len(rel_weights) == 7
 
 	batch_numb = (len(train_data) // C.batch_size) + int((len(train_data) % C.batch_size) != 0)
 	device = tc.device(C.device)
 
-	#----- get model and other training tools -----
-	model = get_model(C.model)(n_rel_typs = n_rel_typs , dropout = C.dropout, device = device).to(device)
+
+	model = get_model(C.model)(n_rel_typs = n_rel_typs , dropout = C.dropout).to(device)
 
 	optimizer = tc.optim.Adam(params = model.parameters() , lr = C.lr)
 	scheduler = get_cosine_schedule_with_warmup(
@@ -47,6 +46,30 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 	)
 	loss_func = loss_funcs[C.loss]
 
+
+	return (batch_numb , device) , (model , optimizer , scheduler , loss_func)
+
+def update_batch(C , logger , 
+		no_rel , model , optimizer , scheduler , loss_func ,  
+		sents , ents , anss , data_ent , 
+	):
+	pred = model(sents , ents)
+	loss = loss_func(pred , anss , ents , no_rel = no_rel , class_weight = rel_weights)
+
+	#----- backward -----
+	optimizer.zero_grad()
+	loss.backward()
+	optimizer.step()
+	scheduler.step()
+
+	return loss , pred
+
+
+
+def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel_typs , no_rel , ensemble_id = 0):	
+	(batch_numb , device) , (model , optimizer , scheduler , loss_func) = before_train(
+		C,logger,train_data,valid_data,relations,rel_weights,n_rel_typs,no_rel,ensemble_id
+	)
 	#----- iterate each epoch -----
 
 	best_epoch = -1
@@ -60,17 +83,9 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 			data = train_data[batch_id * C.batch_size : (batch_id+1) * C.batch_size]
 			sents , ents , anss , data_ent = get_data_from_batch(data, device=device)
 
-			#----- forward -----
-			pred = model(sents , ents)
-			loss = loss_func(pred , anss , ents , no_rel = no_rel , class_weight = rel_weights)
-
-			#----- backward -----
-			optimizer.zero_grad()
-			loss.backward()
-			optimizer.step()
-			scheduler.step()
-
-			#----- other activitis ----
+			loss , pred = update_batch(
+				C,logger,no_rel,model,optimizer,scheduler,loss_func,sents,ents,anss,data_ent
+			)
 
 			avg_loss += float(loss)
 			fitlog.add_loss(value = float(loss) , step = epoch_id * batch_numb + batch_id , 
@@ -80,8 +95,8 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 			pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
 		logger.log ("Epoch %d ended. avg_loss = %.4f" % (epoch_id , avg_loss / batch_numb))
 
-		#----- valid -----
-		micro_f1 , macro_f1 = test(
+
+		micro_f1 , macro_f1 , test_loss = test(
 			C , logger , 
 			valid_data , model , 
 			relations  , rel_weights , no_rel , 
@@ -96,9 +111,7 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 			
 		#	fitlog.add_best_metric(best_macro_f1 , name = "({0})macro f1".format(ensemble_id))
 
-
 		model = model.train()
-
 
 	if not C.no_valid:
 		with open(C.tmp_file_name + ".model" + "." + str(ensemble_id) , "rb") as fil:
@@ -134,7 +147,7 @@ if __name__ == "__main__":
 		trained_models.append(model)
 
 	#----- ensemble test -----
-	micro_f1 , macro_f1 = test(
+	micro_f1 , macro_f1 , loss = test(
 		C , logger , 
 		data_test , trained_models , 
 		relations , rel_weights , no_rel , 

@@ -118,14 +118,7 @@ def get_file_content(file_path):
 		cont = fil.read()
 	return cont
 
-def data_process(
-		logger , 
-		train_data , test_data , valid_data , rel_list , 
-		dataset_type , rel_weight_smooth , rel_weight_norm , verbose = True , 
-	):
-
-	#----- process relation list -----
-
+def get_rel_weights(rel_list , dataset_type , rel_weight_smooth = 0 , rel_weight_norm = False):
 	rel_count = Counter(rel_list)
 	relations = list(rel_count.keys())
 
@@ -142,46 +135,62 @@ def data_process(
 		rel_weights = [(rel_top_freq + rel_weight_smooth) / (cnt + rel_weight_smooth) for cnt in rel_count.values()]
 		if rel_weight_norm:
 			rel_weights = np.array(rel_weights) / np.sum(rel_weights)
+	return relations , rel_weights
 
-	#----- tokenize & index -----
+def tokenize_and_index(logger , tokenizer , dataset , relations):
+	for i , data in enumerate(dataset):
+		dataset[i] = bertize(logger , tokenizer , data)
+	for i , data in enumerate(dataset):
+		dataset[i] = numberize(logger , tokenizer , data , relations)
+	return dataset
+
+def validize(logger , dataset , mode = "train"):
+	'''
+		for train mode , drop those too long , for test mode , assert no too long
+	'''
+	if mode == "train":
+		to_rem = []
+		for i , data in enumerate(dataset):
+			got = cut(logger , data , "train")
+			if got is not None:
+				dataset[i] = got
+			else:
+				to_rem.append(i)
+				logger.log ("*** droped one instance in train because too long")
+		to_rem.reverse()
+		for x in to_rem:
+			dataset.pop(x)
+	else:
+		for i , data in enumerate(dataset):
+			dataset[i] = cut(logger , data , "test")
+			assert dataset[i] is not None # don't drop test instance
+
+	return dataset
+
+
+def data_process(
+		logger , 
+		train_data , test_data , valid_data , rel_list , 
+		dataset_type , rel_weight_smooth , rel_weight_norm , verbose = True , 
+	):
+
+	#----- process relation list -----
+
+	relations , rel_weights = get_rel_weights(rel_list , dataset_type)
+	
+	#----- post process -----
 	bert_type = "bert-base-uncased"
 	tokenizer = BertTokenizer.from_pretrained(bert_type)
 
-	for i , data in enumerate(train_data):
-		train_data[i] = bertize(logger , tokenizer , data)
-	for i , data in  enumerate(test_data):
-		test_data [i] = bertize(logger , tokenizer , data)
-	for i , data in enumerate(valid_data):
-		valid_data[i] = bertize(logger , tokenizer , data)
 
-	for i , data in enumerate(train_data):
-		train_data[i] = numberize(logger , tokenizer , data , relations)
-	for i , data in  enumerate(test_data):
-		test_data [i] = numberize(logger , tokenizer , data , relations)
-	for i , data in enumerate(valid_data):
-		valid_data[i] = numberize(logger , tokenizer , data , relations)
+	def data_post_process(dataset , mode):
+		dataset = tokenize_and_index(logger , tokenizer , dataset , relations)
+		dataset = validize 			(logger , dataset , mode)
+		return dataset
 
-	#----- drop those who are too long to feed into bert ----
-	to_rem = []
-	for i , data in enumerate(train_data):
-		got = cut(logger , data , "train")
-		if got is not None:
-			train_data[i] = got
-		else:
-			to_rem.append(i)
-			logger.log ("*** droped one instance in train because too long")
-	to_rem.reverse()
-	for x in to_rem:
-		train_data.pop(x)
-
-	for i , data in enumerate(test_data):
-		test_data[i] = cut(logger , data , "test")
-		assert test_data[i] is not None # don't drop test instance
-
-	for i , data in enumerate(valid_data):
-		valid_data[i] = cut(logger , data , "test")
-		assert valid_data[i] is not None # also don't drop valid instance
-
+	train_data = data_post_process(train_data , "train")
+	test_data  = data_post_process(test_data  , "test")
+	valid_data = data_post_process(valid_data , "test")
 
 	#----- final process ----
 
