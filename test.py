@@ -3,7 +3,7 @@ import torch as tc
 import pdb
 import os , sys
 import math
-from loss import loss_funcs
+from loss import get_loss_func
 from generate import generate
 from utils.scorer import get_f1
 from utils.train_util import pad_sents , get_data_from_batch
@@ -25,7 +25,7 @@ def before_test(C , logger ,
 	device = tc.device(C.device)
 	batch_size = 8
 	batch_numb = (len(dataset) // batch_size) + int((len(dataset) % batch_size) != 0)
-	loss_func = loss_funcs[C.loss]
+	loss_func = get_loss_func(C.loss)
 
 	return device , batch_size , batch_numb , models , loss_func
 

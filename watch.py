@@ -9,7 +9,6 @@ import pdb
 import os , sys
 import math
 from transformers.optimization import get_cosine_schedule_with_warmup , get_linear_schedule_with_warmup
-from loss import loss_funcs
 from generate import generate
 from test import test
 from utils.train_util import pad_sents , get_data_from_batch

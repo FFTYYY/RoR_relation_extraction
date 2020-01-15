@@ -6,7 +6,7 @@ import pdb
 import os , sys
 import math
 from transformers.optimization import get_cosine_schedule_with_warmup , get_linear_schedule_with_warmup
-from loss import loss_funcs
+from loss import get_loss_func
 from generate import generate
 from test import test
 from utils.train_util import pad_sents , get_data_from_batch
@@ -44,7 +44,7 @@ def before_train(C , logger , train_data , valid_data , relations , rel_weights 
 		num_warmup_steps = C.n_warmup , 
 		num_training_steps = batch_numb * C.epoch_numb , 
 	)
-	loss_func = loss_funcs[C.loss]
+	loss_func = get_loss_func(C.loss)
 
 
 	return (batch_numb , device) , (model , optimizer , scheduler , loss_func)

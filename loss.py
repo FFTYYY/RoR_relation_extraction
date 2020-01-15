@@ -182,9 +182,10 @@ def loss_2(relation_typs , no_rel , pred , anss , ents, class_weight = [1,1,1,1,
 
 	return tot_loss
 
-loss_funcs = {
-	"loss_1" : loss_1 , 
-	"loss_2" : loss_2 , 
-	"loss_3" : loss_3 , 
-	"loss_4" : loss_4 , 	
-}
+def get_loss_func(name):
+	return {
+		"loss_1" : loss_1 , 
+		"loss_2" : loss_2 , 
+		"loss_3" : loss_3 , 
+		"loss_4" : loss_4 ,	
+	}[name]

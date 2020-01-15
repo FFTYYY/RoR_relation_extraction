@@ -130,11 +130,12 @@ def batch2loss(C, data, model, optimizer, scheduler, loss_func,
 
 def get_initializations(C):
 	from torch.optim.lr_scheduler import LambdaLR
-	from train import tc, get_data_and_rels, models, loss_funcs
+	from train import tc, get_model , get_loss_func
 
 	list_of_rel_files = [C.train_rels_1, C.train_rels_2, C.test_rels]
-	train_data_len, _, relations, rel_weights = \
-		get_data_and_rels(C.train_text_1, list_of_rel_files)
+	train_data_len, _, relations, rel_weights = get_data_and_rels(
+		C.train_text_1 , list_of_rel_files , C.dataset
+	)
 
 	if C.rel_only:
 		no_rel = -1
@@ -144,7 +145,7 @@ def get_initializations(C):
 
 	n_rel_typs = len(rel_weights)
 
-	model = models[C.model](n_rel_typs=n_rel_typs,dropout=C.dropout).to(C.device)
+	model = get_model(C.model)(n_rel_typs=n_rel_typs,dropout=C.dropout).to(C.device)
 
 	optimizer = tc.optim.Adam(params=model.parameters(),lr=C.t2g_lr)
 	batch_numb = (train_data_len // C.t2g_batch_size) + int(
@@ -178,7 +179,7 @@ def get_initializations(C):
 
 	scheduler = LambdaLR( # using _LRPolicy is for making it pickle-able.
 		optimizer, _LRPolicy(C.n_warmup, num_training_steps))
-	loss_func = loss_funcs[C.loss]
+	loss_func = get_loss_func(C.loss)
 	
 	return model, optimizer, loss_func, scheduler, \
 		relations, rel_weights, no_rel, n_rel_typs
@@ -217,7 +218,7 @@ def get_test_performance(
 	f1_micro , f1_macro , loss , generated = test(C , FakeLogger() , 
 		test_data , [model] , 
 		relations , rel_weights , no_rel , 
-		mode = "valid" , epoch_id = 0 , ensemble_id = 0 , need_generated = True
+		mode = "test" , epoch_id = 0 , ensemble_id = 0 , need_generated = True
 	)
 
 	return {
