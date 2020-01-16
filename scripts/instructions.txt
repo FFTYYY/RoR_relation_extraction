@@ -5,10 +5,10 @@ sh prep_data_and_env.sh
 CUDA_VISIBLE_DEVICES=0 python train.py --model=graph_trans --ensemble=5
 
 # subtask2 , use test as valid
-CUDA_VISIBLE_DEVICES=0 python train.py --model=graph_trans --ensemble=5 \
+CUDA_VISIBLE_DEVICES=0 python main.py --model=graph_trans --ensemble=5 \
 	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
 	--valid_rels=./data/semeval_2018_task7/keys.test.2.txt \
-	--no_valid
+	--no_valid --no_fitlog
 
 CUDA_VISIBLE_DEVICES=3 python train.py --model=graph_trans --ensemble=5 \
 	--valid_text=./data/semeval_2018_task7/2.test.text.xml \

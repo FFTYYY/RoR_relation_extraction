@@ -1,3 +1,4 @@
+cd ..
 mkdir -p data/semeval_2018_task7/
 curl -o data/semeval_2018_task7/2.test.text.xml https://lipn.univ-paris13.fr/~gabor/semeval2018task7/2.test.text.xml
 curl -o data/semeval_2018_task7/keys.test.2.txt https://lipn.univ-paris13.fr/~gabor/semeval2018task7/keys.test.2.txt
