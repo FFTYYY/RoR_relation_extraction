@@ -1,12 +1,15 @@
+import pdb
 
 class FakeLogger:
-	def __get__(self , *pargs , **kwargs):
+	def log(self , *pargs , **kwargs):
 		pass
 
 
-def get_data_and_rels(train_data_file, list_of_rel_files , dataset_type = "None"):
+def get_data_and_rels(train_data_file, dataset_type, list_of_rel_files):
 	'''
 	train_data_file: str, a valid training file in XML format as semeval 2018
+	dataset_type: str, it can be one of [“agenda”, “webnlg_sent”, “wiki_distant”]. 
+		Currently, they adopt the same way to calculate rel_weight.
 	list_of_rel_files: a list of str, each str is a valid file name storing relations
 
 	return:
@@ -43,27 +46,28 @@ def file_content2data(file_content_xml, file_content_rel):
 	return:
 	data: list of dict, each dict is a data sample as you defined.
 	'''
-	from dataloader.dataloader_semeval_2018_task7 import file_content2data as file2data
+	from dataloader.dataloader_semeval_2018_task7 import parse_a_text_file , parse_a_key_file
+	from dataloader.base import data_process
 
+	data 				= parse_a_text_file(FakeLogger() , file_content_xml , dirty = True)
+	data , rel_list 	= parse_a_key_file (FakeLogger() , data , file_content_rel)
 
-	train_data , _ , _ , _ , _ = file2data(
+	data = [d for _ , d in data.items()]
+
+	return data_process(
 		FakeLogger() , 
-		file_content_xml , file_content_rel , 
-		"" , "" ,
-		"" , "" , 
-		"" , "" , 
-		"None" , 0 , False , verbose = False
-	)
-
-	return train_data
+		data , [] , [] , rel_list , 
+		"None" , 0 , False , False , 
+	)[0]
 
 
-def batch2loss(C, data, model, optimizer, scheduler, loss_func,
+def batch2loss(C, data, dataset_type, model, optimizer, scheduler, loss_func,
 				no_rel, rel_weights, relations,
 				freeze_model:bool=False, if_generate:bool=False):
 	'''
 	C: Namespace, where each attribute is accessed by “C.attr”. It means configurations
 	data: a list of dict, each dict is a data sample as you loaded in “dataloader.py”
+	dataset_type: str, it can be one of [“agenda”, “webnlg_sent”, “wiki_distant”]. They all use get_f1()
 	model: the model which is already model.to(device)
 	freeze_model: bool, if in evaluation mode, then True; if in training mode, then False
 	generate: bool, if generated txt is needed
@@ -78,11 +82,12 @@ def batch2loss(C, data, model, optimizer, scheduler, loss_func,
 	optimizer: the same as the input, but updated
 	scheduler: the same as the input, but updated
 	'''
-	from test import get_output
-	from train import update_batch , get_evaluate
+	from test import get_output , get_evaluate
+	from train import update_batch 
 	from generate import generate
 	from utils.train_util import get_data_from_batch
 	import torch as tc
+	from utils.scorer import get_f1
 
 	if freeze_model:
 		model = model.eval()
@@ -100,7 +105,7 @@ def batch2loss(C, data, model, optimizer, scheduler, loss_func,
 		pred = preds[0]
 	else:
 		loss , pred = update_batch(
-			C,FakeLogger(),no_rel,model,optimizer,scheduler,loss_func,sents,ents,anss,data_ent
+			C,FakeLogger(),rel_weights,no_rel,model,optimizer,scheduler,loss_func,sents,ents,anss,data_ent
 		)
 
 	#----- generate -----
@@ -112,14 +117,21 @@ def batch2loss(C, data, model, optimizer, scheduler, loss_func,
 		generated = ""
 
 	#----- eval -----
-	pass
+	if dataset_type in ["agenda", "webnlg_sent", "wiki_distant"]:
+		golden_content = C.test_rels if freeze_model else C.train_rels_1
+		with open(golden_content , "r") as fil: golden_content = fil.read()
+
+		f1_micro, f1_macro = get_f1(golden_content, generated , is_file_content=True)
+
+	else:
+		f1_micro , f1_macro = -1 , -1
 
 	return (
 		{
 			'performance': {
 				'loss'		: loss , 
-				'f1_micro'	: -1 , 
-				'f1_macro'	: -1 , 
+				'f1_micro'	: f1_micro , 
+				'f1_macro'	: f1_macro , 
 			},
 			'generated': generated,
 		} , 
@@ -133,8 +145,8 @@ def get_initializations(C):
 	from train import tc, get_model , get_loss_func
 
 	list_of_rel_files = [C.train_rels_1, C.train_rels_2, C.test_rels]
-	train_data_len, _, relations, rel_weights = get_data_and_rels(
-		C.train_text_1 , list_of_rel_files , C.dataset
+	train_data_len, relations, rel_weights = get_data_and_rels(
+		C.train_text_1 , C.dataset , list_of_rel_files
 	)
 
 	if C.rel_only:
@@ -187,7 +199,7 @@ def get_initializations(C):
 
 def get_test_performance(
 		test_file_content_xml , test_file_content_rel , 
-		C , model , relations , rel_weights , no_rel , 
+		C, dataset_type, model, no_rel, rel_weights, relations
 	):
 	'''
 	# we can discuss this interface
@@ -204,16 +216,18 @@ def get_test_performance(
 	# 先暂时不管『we cannot throw away sentences longer than 512 for test set』
 
 	from test import test
-	from dataloader.dataloader_semeval_2018_task7 import file_content2data as file2data
+	from dataloader.base import get_rel_weights , get_file_content , data_process
 
-	_ , test_data , _ , _ , _ = file2data(
+	from dataloader.dataloader_semeval_2018_task7 import parse_a_text_file , parse_a_key_file
+
+	test_data 				= parse_a_text_file(FakeLogger() , test_file_content_xml , dirty = True)
+	test_data , rel_list 	= parse_a_key_file (FakeLogger() , test_data , test_file_content_rel)
+	test_data = [d for _ , d in test_data.items()]
+	test_data = data_process(
 		FakeLogger() , 
-		"" , "" , 
-		"" , "" ,
-		test_file_content_xml , test_file_content_rel , 
-		"" , "" , 
-		"None" , 0 , False , verbose = False
-	)
+		[] , test_data , [] , rel_list , 
+		"None" , 0 , False , False , 
+	)[1]
 
 	f1_micro , f1_macro , loss , generated = test(C , FakeLogger() , 
 		test_data , [model] , 
@@ -237,8 +251,8 @@ def _test():
 	#-----------------------------------------------------------------------------------------------
 	len_data , relations , rel_weights = get_data_and_rels(
 		"./data/semeval_2018_task7/1.1.text.xml" ,
-		["./data/semeval_2018_task7/keys.test.1.1.txt"] , 
-		dataset_type = "semeval_2018_task7" , 
+		"semeval_2018_task7" , 
+		["./data/semeval_2018_task7/1.1.relations.txt"] , 
 	)
 	print (len_data , relations , rel_weights)
 
@@ -246,27 +260,36 @@ def _test():
 
 	#-----------------------------------------------------------------------------------------------
 
+
+
 	train_data = file_content2data(
-		"./data/semeval_2018_task7/1.1.text.xml" ,
-		"./data/semeval_2018_task7/keys.test.1.1.txt"
+		open("./data/semeval_2018_task7/1.1.text.xml").read() , 
+		open("./data/semeval_2018_task7/1.1.relations.txt").read() , 
 	)
 	print (len(train_data))
 	pdb.set_trace()
 	#-----------------------------------------------------------------------------------------------
 
 	from config import get_config
-	C = get_config()
+	C , looger = get_config()
 	model, optimizer, loss_func, scheduler, relations, rel_weights, no_rel, n_rel_typs = get_initializations(C)
 	pdb.set_trace()
+	#-----------------------------------------------------------------------------------------------
 
+	ret = batch2loss(C, train_data[:8], "agenda", model, optimizer, scheduler, loss_func,
+				no_rel, rel_weights, relations,
+				False, True)
+	print (ret[0]["performance"])
+
+	pdb.set_trace()
 	#-----------------------------------------------------------------------------------------------
 
 	result = get_test_performance(
-		"./data/semeval_2018_task7/2.test.text.xml" ,
-		"./data/semeval_2018_task7/keys.test.2.txt" ,
-		C , model , relations , rel_weights , no_rel , 
+		open("./data/semeval_2018_task7/2.test.text.xml").read() ,
+		open("./data/semeval_2018_task7/keys.test.2.txt").read() ,
+		C , "whatever" , model  , no_rel , rel_weights , relations 
 	)
-	print (result)
+	print (result['performance'])
 	pdb.set_trace()
 
 

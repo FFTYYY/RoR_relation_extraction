@@ -50,7 +50,7 @@ def before_train(C , logger , train_data , valid_data , relations , rel_weights 
 	return (batch_numb , device) , (model , optimizer , scheduler , loss_func)
 
 def update_batch(C , logger , 
-		no_rel , model , optimizer , scheduler , loss_func ,  
+		rel_weights , no_rel , model , optimizer , scheduler , loss_func ,  
 		sents , ents , anss , data_ent , 
 	):
 	pred = model(sents , ents)
@@ -84,7 +84,7 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 			sents , ents , anss , data_ent = get_data_from_batch(data, device=device)
 
 			loss , pred = update_batch(
-				C,logger,no_rel,model,optimizer,scheduler,loss_func,sents,ents,anss,data_ent
+				C,logger,rel_weights,no_rel,model,optimizer,scheduler,loss_func,sents,ents,anss,data_ent
 			)
 
 			avg_loss += float(loss)
