@@ -6,12 +6,16 @@ from torch.autograd import Variable
 import math
 import pdb
 
-compare_idx = 0
-topic_idx = 4
+def generate_from_pred(pred , data_ent , relations , no_rel , ans_rels = None):
 
-def generate_from_pred(pred , data_ent , relations , gene_buf , no_rel , ans_rels = None):
-	
+	bs , ne , _ , d = pred.size()
+
+	gene_content = ["" for _ in range(bs)]
+
 	def add_rel(_b , i , j , t):
+
+		if t == no_rel:
+			return
 
 		#只输出有relation的边的类型
 		if ans_rels is not None:
@@ -24,14 +28,13 @@ def generate_from_pred(pred , data_ent , relations , gene_buf , no_rel , ans_rel
 			reverse = True
 		t = relations[t]
 
-		gene_buf[_b] += "%s(%s,%s%s)\n" % (
+		gene_content[_b] += "%s(%s,%s%s)\n" % (
 			t , 
 			data_ent[_b][i].name , 
 			data_ent[_b][j].name , 
 			",REVERSE" if reverse else "" , 
 		)
 
-	bs , ne , _ , d = pred.size()
 
 	for _b in range(bs):
 
@@ -40,8 +43,10 @@ def generate_from_pred(pred , data_ent , relations , gene_buf , no_rel , ans_rel
 			for j in range(len(data_ent[_b])):
 				#pred[_b,i,j,topic_idx] *= 10 #more topic
 
-				if i > j:
-					pred[_b,i,j,compare_idx] = 0 #no reverse compare
+				if relations.index("COMPARE") >= 0:
+					if i > j:
+						pred[_b,i,j,relations.index("COMPARE") ] = 0 #no reverse compare
+				pass
 		#---------------------------------------------
 
 
@@ -54,10 +59,10 @@ def generate_from_pred(pred , data_ent , relations , gene_buf , no_rel , ans_rel
 
 		for i in range(len(data_ent[_b])):
 			for j in range(i):
-				if pred_map[i , j] != no_rel:
-					add_rel(_b,i,j,int(pred_map[i , j]))
-				if pred_map[j , i] != no_rel:
-					add_rel(_b,j,i,int(pred_map[j , i]))
+				add_rel(_b,i,j,int(pred_map[i , j]))
+				add_rel(_b,j,i,int(pred_map[j , i]))
+
+	return gene_content
 
 
 def generate(preds , data_ent , relations , no_rel , ans_rels = None , 
@@ -71,15 +76,14 @@ def generate(preds , data_ent , relations , no_rel , ans_rels = None ,
 	pred /= len(preds)
 
 	#----- generate from it -----
-	gene_buf = ["" for _ in range(len(pred))]
-	generate_from_pred(pred , data_ent , relations , gene_buf , no_rel , ans_rels = ans_rels)
+	gene_cont = generate_from_pred(pred , data_ent , relations , no_rel , ans_rels = ans_rels)
 
 	if not split_generate:
-		gene_buf = "".join(gene_buf)
+		gene_cont = "".join(gene_cont)
 
 	if give_me_pred:
-		return gene_buf , pred
-	return gene_buf
+		return gene_cont , pred
+	return gene_cont
 
 class Generator:
 	def __init__(self , relations , no_rel):

@@ -124,10 +124,10 @@ def get_rel_weights(rel_list , dataset_type , rel_weight_smooth = 0 , rel_weight
 
 	if dataset_type == 'semeval_2018_task7':
 		rel2wgh = {
-			"COMPARE": 1, "MODEL-FEATURE": 0.5, "PART_WHOLE": 0.5,
+			"NONE": 0 , "COMPARE": 1, "MODEL-FEATURE": 0.5, "PART_WHOLE": 0.5,
 			"RESULT": 1, "TOPIC": 5, "USAGE": 0.5,
 		}
-		relations = ["COMPARE", "MODEL-FEATURE", "PART_WHOLE", "RESULT",
+		relations = ["NONE" , "COMPARE", "MODEL-FEATURE", "PART_WHOLE", "RESULT",
 					 "TOPIC", "USAGE", ]
 		rel_weights = [rel2wgh[r] for r in relations]
 	else:

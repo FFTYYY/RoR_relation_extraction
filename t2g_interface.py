@@ -141,7 +141,10 @@ def batch2loss(C, data, dataset_type, model, optimizer, scheduler,
 
 def get_initializations(C):
 	from torch.optim.lr_scheduler import LambdaLR
-	from train import tc, get_model , get_loss_func , initialize
+	import torch as tc
+	from models import get_model 
+	from loss import get_loss_func 
+	from main import initialize
 
 
 	list_of_rel_files = [C.train_rels_1, C.train_rels_2, C.test_rels]
@@ -223,7 +226,7 @@ def get_test_performance(
 
 	f1_micro , f1_macro , loss , generated = test(C , FakeLogger() , 
 		test_data , [model] , loss_func , generator , 
-		mode = "test" , epoch_id = 0 , ensemble_id = 0 , need_generated = True
+		mode = "test" , epoch_id = 0 , run_name = 0 , need_generated = True
 	)
 
 	return {
