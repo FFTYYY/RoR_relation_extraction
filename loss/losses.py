@@ -14,10 +14,12 @@ def downsample(mask , count):
 
 	return mask
 
-def loss_4(relation_typs , no_rel , pred , anss , ents, class_weight = [1,0.5,0.5,1,5,0.5,1]):
+def loss_4(pred , anss , ents , no_rel , class_weight = [1,0.5,0.5,1,5,0.5,1]):
 	'''
 		按类别加权，而且平衡正负例数量
 	'''
+	n_rel_typs = pred.size(-1)
+
 	bs , ne , _ , d = pred.size()
 
 
@@ -38,7 +40,7 @@ def loss_4(relation_typs , no_rel , pred , anss , ents, class_weight = [1,0.5,0.
 		pos_count = 0
 
 		loss_map = pred[_b].view(ne*ne,-1)[tc.arange(ne*ne) , rel_map.view(-1)].view(ne,ne)
-		for c in range(relation_typs):
+		for c in range(n_rel_typs):
 
 			c_mask = (rel_map == c) & pad_mask
 
@@ -65,8 +67,7 @@ def loss_4(relation_typs , no_rel , pred , anss , ents, class_weight = [1,0.5,0.
 
 
 
-def loss_3(pred , anss , ents , no_rel , 
-		   class_weight = [1,0.5,0.5,1,5,0.5,0.05] , pad_ix = -100):
+def loss_3(pred , anss , ents , no_rel , class_weight = [1,0.5,0.5,1,5,0.5,0.05] , pad_ix = -100):
 	'''
 		直接平均，按类别加权
 	'''
@@ -93,10 +94,13 @@ def loss_3(pred , anss , ents , no_rel ,
 	return loss_f
 
 
-def loss_1(relation_typs , no_rel , pred , anss , ents, class_weight=[1,0.5,0.5,1,5,0.5,0.05]):
+def loss_1(pred , anss , ents , no_rel , class_weight = [1,0.5,0.5,1,5,0.5,1]):
 	'''
 		正负例分别加权平均
 	'''
+	n_rel_typs = pred.size(-1)
+
+
 	bs , ne , _ , d = pred.size()
 
 	neg_rate = 0.9
@@ -133,16 +137,18 @@ def loss_1(relation_typs , no_rel , pred , anss , ents, class_weight=[1,0.5,0.5,
 	return tot_loss
 
 
-def loss_2(relation_typs , no_rel , pred , anss , ents, class_weight = [1,1,1,1,1,1,1]):
+def loss_2(pred , anss , ents , no_rel , class_weight = [1,0.5,0.5,1,5,0.5,1]):
 	'''
 		所有类分别平均然后加权平均
 	'''
+	n_rel_typs = pred.size(-1)
+
 	bs , ne , _ , d = pred.size()
 
 	neg_rate = 0.5
 
-	tot_loss_class = [0.] * relation_typs
-	tot_show_class = [0 ] * relation_typs
+	tot_loss_class = [0.] * n_rel_typs
+	tot_show_class = [0 ] * n_rel_typs
 
 	pred = -tc.log_softmax( pred , dim = -1)
 	device = pred.device
@@ -156,7 +162,7 @@ def loss_2(relation_typs , no_rel , pred , anss , ents, class_weight = [1,1,1,1,
 			rel_map[u , v] = t
 
 		loss_map = pred[_b].view(ne*ne,-1)[tc.arange(ne*ne) , rel_map.view(-1)].view(ne,ne)
-		for c in range(relation_typs):
+		for c in range(n_rel_typs):
 
 			c_mask = (rel_map == c)
 			c_loss = loss_map.masked_select(c_mask & pad_mask)

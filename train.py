@@ -7,7 +7,7 @@ import os , sys
 import math
 from transformers.optimization import get_cosine_schedule_with_warmup , get_linear_schedule_with_warmup
 from loss import get_loss_func
-from generate import generate
+from generate import Generator
 from test import test
 from utils.train_util import pad_sents , get_data_from_batch
 from utils.scorer import get_f1
@@ -29,12 +29,25 @@ def load_data(C , logger):
 
 	return data_train , data_test , data_valid , relations, rel_weights
 
-def before_train(C , logger , train_data , valid_data , relations , rel_weights , n_rel_typs , no_rel , ensemble_id):
+def initialize(C , logger , relations , rel_weights):
+	
+	if C.rel_only: # no no_rel
+		n_rel_typs , no_rel = len(relations)     , -1
+	else:
+		n_rel_typs , no_rel = len(relations) + 1 , len(relations)
+		rel_weights = rel_weights + [C.no_rel_weight]
+
 	assert len(rel_weights) == 7
+
+	loss_func = get_loss_func(C.loss , no_rel = no_rel , class_weight = rel_weights)
+	generator = Generator(relations = relations , no_rel = no_rel)
+
+	return n_rel_typs , loss_func , generator
+
+def before_train(C , logger , train_data , valid_data , n_rel_typs , ensemble_id):
 
 	batch_numb = (len(train_data) // C.batch_size) + int((len(train_data) % C.batch_size) != 0)
 	device = tc.device(C.device)
-
 
 	model = get_model(C.model)(n_rel_typs = n_rel_typs , dropout = C.dropout).to(device)
 
@@ -44,17 +57,15 @@ def before_train(C , logger , train_data , valid_data , relations , rel_weights 
 		num_warmup_steps = C.n_warmup , 
 		num_training_steps = batch_numb * C.epoch_numb , 
 	)
-	loss_func = get_loss_func(C.loss)
 
-
-	return (batch_numb , device) , (model , optimizer , scheduler , loss_func)
+	return (batch_numb , device) , (model , optimizer , scheduler)
 
 def update_batch(C , logger , 
-		rel_weights , no_rel , model , optimizer , scheduler , loss_func ,  
+		model , optimizer , scheduler , loss_func ,  
 		sents , ents , anss , data_ent , 
 	):
 	pred = model(sents , ents)
-	loss = loss_func(pred , anss , ents , no_rel = no_rel , class_weight = rel_weights)
+	loss = loss_func(pred , anss , ents)
 
 	#----- backward -----
 	optimizer.zero_grad()
@@ -65,10 +76,9 @@ def update_batch(C , logger ,
 	return loss , pred
 
 
-
-def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel_typs , no_rel , ensemble_id = 0):	
-	(batch_numb , device) , (model , optimizer , scheduler , loss_func) = before_train(
-		C,logger,train_data,valid_data,relations,rel_weights,n_rel_typs,no_rel,ensemble_id
+def train(C , logger , train_data , valid_data , loss_func , generator , n_rel_typs , ensemble_id = 0):	
+	(batch_numb , device) , (model , optimizer , scheduler) = before_train(
+		C , logger , train_data , valid_data , n_rel_typs , ensemble_id
 	)
 	#----- iterate each epoch -----
 
@@ -84,7 +94,7 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 			sents , ents , anss , data_ent = get_data_from_batch(data, device=device)
 
 			loss , pred = update_batch(
-				C,logger,rel_weights,no_rel,model,optimizer,scheduler,loss_func,sents,ents,anss,data_ent
+				C , logger , model , optimizer , scheduler , loss_func , sents , ents , anss , data_ent
 			)
 
 			avg_loss += float(loss)
@@ -99,7 +109,7 @@ def train(C , logger , train_data , valid_data , relations , rel_weights , n_rel
 		micro_f1 , macro_f1 , test_loss = test(
 			C , logger , 
 			valid_data , model , 
-			relations  , rel_weights , no_rel , 
+			loss_func , generator , 
 			"valid" , epoch_id   , ensemble_id , 
 		)
 
@@ -128,19 +138,14 @@ if __name__ == "__main__":
 	#----- prepare data and some global variables -----
 	data_train , data_test , data_valid , relations, rel_weights = load_data(C , logger)
 
-	if C.rel_only: # no no_rel
-		n_rel_typs , no_rel = len(relations)     , -1
-	else:
-		n_rel_typs , no_rel = len(relations) + 1 , len(relations)
-		rel_weights = rel_weights + [C.no_rel_weight]
-
+	n_rel_typs , loss_func , generator = initialize(C , logger , relations, rel_weights)
 	#----- train & test -----
 	trained_models = []
 	for i in range(C.ensemble_size):
 		model = train(
 			C , logger , 
 			data_train , data_valid , 
-			relations, rel_weights , n_rel_typs , no_rel , 
+			loss_func , generator , n_rel_typs  , 
 			ensemble_id = i , 
 		)
 		model = model.cpu()
@@ -150,7 +155,7 @@ if __name__ == "__main__":
 	micro_f1 , macro_f1 , loss = test(
 		C , logger , 
 		data_test , trained_models , 
-		relations , rel_weights , no_rel , 
+		loss_func , generator , 
 		mode = "test" , epoch_id = C.epoch_numb , ensemble_id = 'final', 
 	)
 	fitlog.add_hyper(macro_f1 , name = "(ensembled)macro f1")

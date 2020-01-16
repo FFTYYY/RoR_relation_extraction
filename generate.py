@@ -80,3 +80,11 @@ def generate(preds , data_ent , relations , no_rel , ans_rels = None ,
 	if give_me_pred:
 		return gene_buf , pred
 	return gene_buf
+
+class Generator:
+	def __init__(self , relations , no_rel):
+		self.relations = relations
+		self.no_rel = no_rel
+
+	def __call__(self , preds , data_ent , ans_rels = None, give_me_pred = False, split_generate = False):
+		return generate(preds , data_ent , self.relations , self.no_rel , ans_rels , give_me_pred , split_generate)

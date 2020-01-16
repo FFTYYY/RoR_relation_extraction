@@ -61,8 +61,8 @@ def file_content2data(file_content_xml, file_content_rel):
 	)[0]
 
 
-def batch2loss(C, data, dataset_type, model, optimizer, scheduler, loss_func,
-				no_rel, rel_weights, relations,
+def batch2loss(C, data, dataset_type, model, optimizer, scheduler, 
+				loss_func,generator,
 				freeze_model:bool=False, if_generate:bool=False):
 	'''
 	C: Namespace, where each attribute is accessed by “C.attr”. It means configurations
@@ -84,7 +84,6 @@ def batch2loss(C, data, dataset_type, model, optimizer, scheduler, loss_func,
 	'''
 	from test import get_output , get_evaluate
 	from train import update_batch 
-	from generate import generate
 	from utils.train_util import get_data_from_batch
 	import torch as tc
 	from utils.scorer import get_f1
@@ -100,19 +99,19 @@ def batch2loss(C, data, dataset_type, model, optimizer, scheduler, loss_func,
 	if freeze_model:
 		with tc.no_grad():
 			model , preds , loss , partial_generated = get_output(
-				C,FakeLogger(),no_rel,rel_weights,relations,[model],C.device,loss_func,sents,ents,anss,data_ent
+				C,FakeLogger(),[model],C.device,loss_func,generator,sents,ents,anss,data_ent
 			)
 		pred = preds[0]
 	else:
 		loss , pred = update_batch(
-			C,FakeLogger(),rel_weights,no_rel,model,optimizer,scheduler,loss_func,sents,ents,anss,data_ent
+			C,FakeLogger(),model,optimizer,scheduler,loss_func,sents,ents,anss,data_ent
 		)
 
 	#----- generate -----
 
 	if if_generate:
 		ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss] if C.rel_only else None
-		generated = generate([pred] , data_ent , relations , no_rel , ans_rels = ans_rels)
+		generated = generator([pred] , data_ent , ans_rels = ans_rels)
 	else:
 		generated = ""
 
@@ -142,20 +141,15 @@ def batch2loss(C, data, dataset_type, model, optimizer, scheduler, loss_func,
 
 def get_initializations(C):
 	from torch.optim.lr_scheduler import LambdaLR
-	from train import tc, get_model , get_loss_func
+	from train import tc, get_model , get_loss_func , initialize
+
 
 	list_of_rel_files = [C.train_rels_1, C.train_rels_2, C.test_rels]
 	train_data_len, relations, rel_weights = get_data_and_rels(
 		C.train_text_1 , C.dataset , list_of_rel_files
 	)
 
-	if C.rel_only:
-		no_rel = -1
-	else:
-		rel_weights += [C.no_rel_weight]
-		no_rel = len(relations)
-
-	n_rel_typs = len(rel_weights)
+	n_rel_typs , loss_func , generator = initialize(C , FakeLogger() , relations, rel_weights)
 
 	model = get_model(C.model)(n_rel_typs=n_rel_typs,dropout=C.dropout).to(C.device)
 
@@ -191,15 +185,13 @@ def get_initializations(C):
 
 	scheduler = LambdaLR( # using _LRPolicy is for making it pickle-able.
 		optimizer, _LRPolicy(C.n_warmup, num_training_steps))
-	loss_func = get_loss_func(C.loss)
 	
-	return model, optimizer, loss_func, scheduler, \
-		relations, rel_weights, no_rel, n_rel_typs
+	return model , optimizer , loss_func, generator ,  scheduler
 
 
 def get_test_performance(
 		test_file_content_xml , test_file_content_rel , 
-		C, dataset_type, model, no_rel, rel_weights, relations
+		C , dataset_type , model , loss_func , generator , 
 	):
 	'''
 	# we can discuss this interface
@@ -230,8 +222,7 @@ def get_test_performance(
 	)[1]
 
 	f1_micro , f1_macro , loss , generated = test(C , FakeLogger() , 
-		test_data , [model] , 
-		relations , rel_weights , no_rel , 
+		test_data , [model] , loss_func , generator , 
 		mode = "test" , epoch_id = 0 , ensemble_id = 0 , need_generated = True
 	)
 
@@ -271,13 +262,12 @@ def _test():
 	#-----------------------------------------------------------------------------------------------
 
 	from config import get_config
-	C , looger = get_config()
-	model, optimizer, loss_func, scheduler, relations, rel_weights, no_rel, n_rel_typs = get_initializations(C)
+	C , loger = get_config()
+	model, optimizer, loss_func, generator , scheduler = get_initializations(C)
 	pdb.set_trace()
 	#-----------------------------------------------------------------------------------------------
 
-	ret = batch2loss(C, train_data[:8], "agenda", model, optimizer, scheduler, loss_func,
-				no_rel, rel_weights, relations,
+	ret = batch2loss(C, train_data[:8], "agenda", model, optimizer, scheduler, loss_func , generator , 
 				False, True)
 	print (ret[0]["performance"])
 
@@ -287,7 +277,7 @@ def _test():
 	result = get_test_performance(
 		open("./data/semeval_2018_task7/2.test.text.xml").read() ,
 		open("./data/semeval_2018_task7/keys.test.2.txt").read() ,
-		C , "whatever" , model  , no_rel , rel_weights , relations 
+		C , "whatever" , model , loss_func , generator , 
 	)
 	print (result['performance'])
 	pdb.set_trace()
