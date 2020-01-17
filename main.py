@@ -1,4 +1,3 @@
-from config import get_config
 from train import train
 from dataloader import get_dataloader
 from loss import get_loss_func
@@ -36,6 +35,8 @@ def initialize(C , logger , relations , rel_weights):
 
 
 def main():
+	from config import get_config
+
 	C , logger = get_config()
 
 	#----- prepare data and some global variables -----

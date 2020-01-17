@@ -5,7 +5,8 @@ class FakeLogger:
 		pass
 
 
-def get_data_and_rels(train_data_file, dataset_type, list_of_rel_files):
+def get_data_and_rels(train_data_file, dataset_type, list_of_rel_files,
+					  rel_weight_smooth=0, rel_weight_norm=False):
 	'''
 	train_data_file: str, a valid training file in XML format as semeval 2018
 	dataset_type: str, it can be one of [“agenda”, “webnlg_sent”, “wiki_distant”]. 
@@ -34,7 +35,8 @@ def get_data_and_rels(train_data_file, dataset_type, list_of_rel_files):
 	#make datas list
 	data = [d for _ , d in data.items()]
 
-	relations , rel_weights = get_rel_weights(relations , dataset_type)
+	relations , rel_weights = get_rel_weights(relations , dataset_type,
+											  rel_weight_smooth, rel_weight_norm)
 
 	return len(data) , relations , rel_weights
 
@@ -61,7 +63,7 @@ def file_content2data(file_content_xml, file_content_rel):
 	)[0]
 
 
-def batch2loss(C, data, dataset_type, model, optimizer, scheduler, 
+def batch2loss(C, data, dataset_type, model ,
 				loss_func,generator,
 				freeze_model:bool=False, if_generate:bool=False):
 	'''
@@ -82,8 +84,6 @@ def batch2loss(C, data, dataset_type, model, optimizer, scheduler,
 	optimizer: the same as the input, but updated
 	scheduler: the same as the input, but updated
 	'''
-	from test import get_output , get_evaluate
-	from train import update_batch 
 	from utils.train_util import get_data_from_batch
 	import torch as tc
 	from utils.scorer import get_f1
@@ -95,17 +95,14 @@ def batch2loss(C, data, dataset_type, model, optimizer, scheduler,
 
 	sents , ents , anss , data_ent = get_data_from_batch(data , device = C.device)
 
-	#----- get loss -----
+	#----- get loss ----- # no need to backpropagate
 	if freeze_model:
 		with tc.no_grad():
-			model , preds , loss , partial_generated = get_output(
-				C,FakeLogger(),[model],C.device,loss_func,generator,sents,ents,anss,data_ent
-			)
-		pred = preds[0]
+			pred = model(sents, ents)
+			loss = loss_func(pred, anss, ents)
 	else:
-		loss , pred = update_batch(
-			C,FakeLogger(),model,optimizer,scheduler,loss_func,sents,ents,anss,data_ent
-		)
+		pred = model(sents, ents)
+		loss = loss_func(pred, anss, ents)
 
 	#----- generate -----
 
@@ -125,17 +122,14 @@ def batch2loss(C, data, dataset_type, model, optimizer, scheduler,
 	else:
 		f1_micro , f1_macro = -1 , -1
 
-	return (
-		{
+	return {
 			'performance': {
 				'loss'		: loss , 
 				'f1_micro'	: f1_micro , 
 				'f1_macro'	: f1_macro , 
 			},
 			'generated': generated,
-		} , 
-		model , optimizer , scheduler , 
-	)
+		}
 
 
 
@@ -143,18 +137,18 @@ def get_initializations(C):
 	from torch.optim.lr_scheduler import LambdaLR
 	import torch as tc
 	from models import get_model 
-	from loss import get_loss_func 
 	from main import initialize
 
 
 	list_of_rel_files = [C.train_rels_1, C.train_rels_2, C.test_rels]
 	train_data_len, relations, rel_weights = get_data_and_rels(
-		C.train_text_1 , C.dataset , list_of_rel_files
+		C.train_text_1 , C.dataset , list_of_rel_files,
+		C.rel_weight_smooth, C.rel_weight_norm
 	)
 
 	n_rel_typs , loss_func , generator = initialize(C , FakeLogger() , relations, rel_weights)
 
-	model = get_model(C.model)(n_rel_typs=n_rel_typs,dropout=C.dropout).to(C.device)
+	model = get_model(C.model)(n_rel_typs=n_rel_typs,dropout=C.dropout)
 
 	optimizer = tc.optim.Adam(params=model.parameters(),lr=C.t2g_lr)
 	batch_numb = (train_data_len // C.t2g_batch_size) + int(
