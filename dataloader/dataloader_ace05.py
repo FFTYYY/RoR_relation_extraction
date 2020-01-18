@@ -25,6 +25,13 @@ def parse_a_file(logger , file_text):
 		text = " ".join(x["words"])
 		nepairs = json.loads(x["nePairs"])[0]
 
+
+		rel_type , rel_direct = x["relLabels"][0].split("(")
+		rel_direct = "(" + rel_direct
+
+		if rel_type == "NO_RELATION":
+			continue
+
 		e1_s , e1_e , e1_name = nepairs["m1"]["start"] , nepairs["m1"]["end"] , nepairs["m1"]["id"]
 		e2_s , e2_e , e2_name = nepairs["m2"]["start"] , nepairs["m2"]["end"] , nepairs["m2"]["id"]
 		e1_s = len(" ".join(x["words"][:e1_s])) + (e1_s!=0) # +1 for space
@@ -47,17 +54,35 @@ def parse_a_file(logger , file_text):
 
 		if datas.get(text) is None:
 			datas[text] = Data(abstract = text , ents = [])
+			datas[text].text_id = "text_%d" % (len(datas))
+			datas[text].fake_ent_names = []
 
-		if not e1_name in datas[text].ent_names:
-			datas[text].ents.append(Entity(e1_s , e1_e , e1_name))
-			datas[text].ent_names.append(e1_name)
+		if not e1_name in datas[text].fake_ent_names:
+			e1_real_name = "%s.%d" % (datas[text].text_id , len(datas[text].fake_ent_names)) #(text_id.编号)
+			datas[text].ents.append(Entity(e1_s , e1_e , e1_real_name))
+			datas[text].ent_names.append(e1_real_name)
+			datas[text].fake_ent_names.append(e1_name)
+		e1_real_name = "%s.%d" % (datas[text].text_id , datas[text].fake_ent_names.index(e1_name))
 
-		if not e2_name in datas[text].ent_names:
-			datas[text].ents.append(Entity(e2_s , e2_e , e2_name))
-			datas[text].ent_names.append(e2_name)
+		if not e2_name in datas[text].fake_ent_names:
+			e2_real_name = "%s.%d" % (datas[text].text_id , len(datas[text].fake_ent_names)) #(text_id.编号)
+			datas[text].ents.append(Entity(e2_s , e2_e , e2_real_name))
+			datas[text].ent_names.append(e2_real_name)
+			datas[text].fake_ent_names.append(e2_name)
+		e2_real_name = "%s.%d" % (datas[text].text_id , datas[text].fake_ent_names.index(e2_name))
 
-		datas[text].ans .append(Relation(e1_name , e2_name , type = x["relLabels"][0]))
-		rel_list.append(x["relLabels"][0])
+		if rel_direct == "(Arg-1,Arg-2)":
+			datas[text].ans.append(Relation(e1_real_name , e2_real_name , type = rel_type))
+		elif rel_direct == "(Arg-2,Arg-1)":
+			datas[text].ans.append(Relation(e2_real_name , e1_real_name , type = rel_type))
+		elif rel_direct == "(Arg-1,Arg-1)": #双向关系，只添加正向边
+			datas[text].ans.append(Relation(e1_real_name , e2_real_name , type = rel_type))
+		else:
+			assert False
+
+
+		rel_list.append(rel_type)
+
 
 	datas = [datas[x] for x in datas]
 
@@ -75,11 +100,24 @@ def _read_data(
 	rel_list = rel_list_1 + rel_list_2 + rel_list_3
 
 
-	return data_process(
+	train_data , test_data , valid_data , relations , rel_weights = data_process(
 		logger , 
 		train_data , test_data , valid_data , rel_list , 
 		dataset_type , rel_weight_smooth , rel_weight_norm , 
 	)
+
+	'''
+	valid_cont = [x.abs for x in valid_data]
+	_to_rem = []
+	for i , x in enumerate(train_data): #drop those valid in train
+		if x.abs in valid_cont:
+			_to_rem.append(i)
+	_to_rem.revserse()
+	for i in _to_rem:
+		train_data.pop(i)
+	'''
+
+	return train_data , test_data , valid_data , relations , rel_weights
 
 
 def read_data(

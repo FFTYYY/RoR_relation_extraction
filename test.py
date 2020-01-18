@@ -7,7 +7,7 @@ import fitlog
 import re
 from utils.scorer import get_f1
 from utils.train_util import pad_sents , get_data_from_batch
-
+from utils.write_keyfile import write_keyfile
 
 def before_test(C , logger , dataset , models):
 	
@@ -39,14 +39,21 @@ def get_output(C , logger ,
 	ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss] if C.rel_only else None
 	generated = generator(preds , data_ent , ans_rels = ans_rels)
 
+	#pred_map = pred.max(-1)[1] #(ne , ne)
+
 	return model , preds , loss , generated
 
-def get_evaluate(C , logger , mode , generated):
+def get_evaluate(C , logger , mode , generated , generator = None , test_data = None):
 	key_file = C.valid_rels if mode == "valid" else C.test_rels
+	
+	if test_data:
+		key_file = C.tmp_file_name + ".test"
+
 
 	with open(C.tmp_file_name , "w" , encoding = "utf-8") as ofil:
 		ofil.write(generated)
-	if C.dataset == "semeval_2018_task7":
+
+	if C.dataset == "semeval_2018_task7" and False:
 
 		os.system("perl {script} {output_file} {key_file} > {result_file}".format(
 			script 		= C.test_script ,
@@ -57,7 +64,6 @@ def get_evaluate(C , logger , mode , generated):
 		with open(C.tmp_file_name + ".imm" , "r" , encoding = "utf-8") as rfil:
 			result = rfil.read()
 
-		#pdb.set_trace()
 
 		if not result.strip(): #submission is empty
 			micro_f1 = 0
@@ -67,8 +73,16 @@ def get_evaluate(C , logger , mode , generated):
 			macro_f1 = float(re.findall("Macro-averaged result[\\s\\S]*?F1 = *(\\d*?\\.\\d*?)%", result)[0])
 
 	else:
-		micro_f1 , macro_f1 = get_f1(key_file, C.tmp_file_name)
-		micro_f1 , macro_f1 = micro_f1 * 100 , macro_f1 * 100
+		if test_data is not None: #write test data
+			golden = write_keyfile(test_data , generator)
+
+			#pdb.set_trace()
+
+			micro_f1 , macro_f1 = get_f1(golden , generated , is_file_content = True , no_rel = "NO_RELATION")
+			micro_f1 , macro_f1 = micro_f1 * 100 , macro_f1 * 100
+		else:
+			micro_f1 , macro_f1 = get_f1(key_file, C.tmp_file_name)
+			micro_f1 , macro_f1 = micro_f1 * 100 , macro_f1 * 100
 	#os.system("rm %s" % C.tmp_file_name)
 	#os.system("rm %s.imm" % C.tmp_file_name)
 
@@ -103,7 +117,10 @@ def test(C , logger ,
 		pbar.set_description_str("(Test )Epoch {0}".format(epoch_id))
 		pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
 
-	micro_f1 , macro_f1 = get_evaluate(C , logger , mode , generated)
+	if C.dataset == "ace_2005":
+		micro_f1 , macro_f1 = get_evaluate(C , logger , mode , generated , generator , dataset)
+	else:
+		micro_f1 , macro_f1 = get_evaluate(C , logger , mode , generated)
 
 	#print (result)
 	logger.log ("-----Epoch {} tested. Micro F1 = {:.2f}% , Macro F1 = {:.2f}% , loss = {:.4f}".

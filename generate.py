@@ -43,7 +43,7 @@ def generate_from_pred(pred , data_ent , relations , no_rel , ans_rels = None):
 			for j in range(len(data_ent[_b])):
 				#pred[_b,i,j,topic_idx] *= 10 #more topic
 
-				if relations.index("COMPARE") >= 0:
+				if "COMPARE" in relations:
 					if i > j:
 						pred[_b,i,j,relations.index("COMPARE") ] = 0 #no reverse compare
 				pass
@@ -83,6 +83,7 @@ def generate(preds , data_ent , relations , no_rel , ans_rels = None ,
 
 	if give_me_pred:
 		return gene_cont , pred
+
 	return gene_cont
 
 class Generator:

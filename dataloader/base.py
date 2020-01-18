@@ -127,14 +127,19 @@ def get_rel_weights(rel_list , dataset_type , rel_weight_smooth = 0 , rel_weight
 			"NONE": 0 , "COMPARE": 1, "MODEL-FEATURE": 0.5, "PART_WHOLE": 0.5,
 			"RESULT": 1, "TOPIC": 5, "USAGE": 0.5,
 		}
-		relations = ["NONE" , "COMPARE", "MODEL-FEATURE", "PART_WHOLE", "RESULT",
-					 "TOPIC", "USAGE", ]
+		relations = ["COMPARE", "MODEL-FEATURE", "PART_WHOLE", "RESULT",
+					 "TOPIC", "USAGE", "NONE"]
 		rel_weights = [rel2wgh[r] for r in relations]
 	else:
 		rel_top_freq = rel_count.most_common(1)[0][-1]
 		rel_weights = [(rel_top_freq + rel_weight_smooth) / (cnt + rel_weight_smooth) for cnt in rel_count.values()]
 		if rel_weight_norm:
 			rel_weights = np.array(rel_weights) / np.sum(rel_weights)
+		
+		if dataset_type == "ace_2005":
+			relations = ["NO_RELATION"] + relations
+			rel_weights = [0] + rel_weights
+
 	return relations , rel_weights
 
 def tokenize_and_index(logger , tokenizer , dataset , relations):

@@ -4,8 +4,13 @@ __all__ = ['get_f1']
 
 NO_REL = 'NONE'
 
-def get_f1(gold_file, pred_file, is_file_content=False, precision=4):
+def get_f1(gold_file, pred_file, is_file_content=False, precision=4 , no_rel = None):
     from sklearn.metrics import f1_score
+
+    if no_rel is not None:
+        global NO_REL
+        NO_REL = no_rel
+
     rel_str2id = _get_rels([gold_file, pred_file], is_file_content)
     classes = rel_str2id.classes_
 

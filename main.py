@@ -21,10 +21,16 @@ def load_data(C , logger):
 
 def initialize(C , logger , relations , rel_weights):
 	
-	n_rel_typs , no_rel = len(relations) , 0
-	rel_weights[no_rel] = C.no_rel_weight
+	n_rel_typs = len(relations)
 
-	assert len(rel_weights) == 7
+	no_rel = 0
+	if "NONE" in relations: no_rel = relations.index("NONE")
+	if "NO_RELATION" in relations: no_rel = relations.index("NO_RELATION")
+	rel_weights[no_rel] = C.no_rel_weight
+	logger.log("relations : {0}".format(relations))
+	logger.log("rel_weights : {0}".format(rel_weights))
+
+	#assert len(rel_weights) == 7
 
 	loss_func = get_loss_func(C.loss , no_rel = no_rel , class_weight = rel_weights)
 	generator = Generator(relations = relations , no_rel = no_rel)
