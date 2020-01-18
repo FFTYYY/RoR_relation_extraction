@@ -5,7 +5,7 @@ __all__ = ['get_f1']
 NO_REL = 'NONE'
 
 def get_f1(gold_file, pred_file, is_file_content=False, precision=4 , no_rel = None):
-    from sklearn.metrics import f1_score
+    from sklearn.metrics import f1_score , precision_score , recall_score
 
     if no_rel is not None:
         global NO_REL
@@ -26,7 +26,14 @@ def get_f1(gold_file, pred_file, is_file_content=False, precision=4 , no_rel = N
     pos_classes = set(classes) - {NO_REL}
     pos_labels = rel_str2id.transform(list(pos_classes))
     f1_micro = f1_score(gold, pred, average='micro', labels=pos_labels, zero_division=0)
-    f1_macro = f1_score(gold, pred, average='macro', labels=pos_labels, zero_division=0)
+
+    preci = precision_score(gold, pred, average='macro', labels=pos_labels, zero_division=0)
+    recal =    recall_score(gold, pred, average='macro', labels=pos_labels, zero_division=0)
+    if (preci + recal) == 0:
+        f1_macro = 0
+    else:
+        f1_macro = (2 * preci * recal) / (preci + recal)
+
     return round(f1_micro, precision), round(f1_macro, precision)
 
     # gold_matrix = _file2matrix(gold_file)
