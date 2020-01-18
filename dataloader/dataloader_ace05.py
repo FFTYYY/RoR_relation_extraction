@@ -106,16 +106,17 @@ def _read_data(
 		dataset_type , rel_weight_smooth , rel_weight_norm , 
 	)
 
-	'''
-	valid_cont = [x.abs for x in valid_data]
+	#'''
+	valid_cont = [x.abs for x in valid_data] + [x.abs for x in test_data]
 	_to_rem = []
 	for i , x in enumerate(train_data): #drop those valid in train
 		if x.abs in valid_cont:
 			_to_rem.append(i)
-	_to_rem.revserse()
+			logger.log("oh, found overlap in train and test/dev")
+	_to_rem.reverse()
 	for i in _to_rem:
 		train_data.pop(i)
-	'''
+	#'''
 
 	return train_data , test_data , valid_data , relations , rel_weights
 

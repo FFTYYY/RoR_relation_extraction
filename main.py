@@ -56,7 +56,7 @@ def main():
 			C , logger , 
 			data_train , data_valid , 
 			loss_func , generator , n_rel_typs  , 
-			run_name = str(i) , 
+			run_name = str(i) , test_data = data_test , 
 		)
 		model = model.cpu()
 		trained_models.append(model)

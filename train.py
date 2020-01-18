@@ -45,7 +45,7 @@ def update_batch(C , logger ,
 	return loss , pred
 
 
-def train(C , logger , train_data , valid_data , loss_func , generator , n_rel_typs , run_name = "0"):	
+def train(C , logger , train_data , valid_data , loss_func , generator , n_rel_typs , run_name = "0" , test_data = None):	
 	(batch_numb , device) , (model , optimizer , scheduler) = before_train(
 		C , logger , train_data , n_rel_typs
 	)
@@ -91,6 +91,15 @@ def train(C , logger , train_data , valid_data , loss_func , generator , n_rel_t
 		#	fitlog.add_best_metric(best_macro_f1 , name = "({0})macro f1".format(ensemble_id))
 
 		model = model.train()
+
+	if test_data is not None:
+		final_micro_f1 , final_macro_f1 , final_test_loss = test(
+			C , logger , 
+			test_data , model , 
+			loss_func , generator , 
+			"test" , epoch_id   , run_name , 
+		)
+
 
 	if not C.no_valid:
 		with open(C.tmp_file_name + ".model" + "." + str(run_name) , "rb") as fil:
