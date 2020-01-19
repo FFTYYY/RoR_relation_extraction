@@ -24,7 +24,7 @@ def before_test(C , logger , dataset , models):
 
 def get_output(C , logger , 
 		models , device , loss_func , generator , 
-		sents , ents , anss , data_ent , 
+		sents , ents , anss , data_ent , epoch_num = -1 , 
 	):
 	preds = [0 for _ in range(len(models))]
 	for i , model in enumerate(models):
@@ -36,55 +36,39 @@ def get_output(C , logger ,
 
 		loss = loss_func(preds[i] , anss , ents)
 
+		#if i <= 5:
+		#	logger.log("------ batch %d pred -----" % i)
+		#	#TODO
+		#	logger.log(str(preds[0]))
+		#	logger.log("------ batch %d pred -----" % i)
+
+
 	ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss] if C.rel_only else None
 	generated = generator(preds , data_ent , ans_rels = ans_rels)
+
+	#with open("watch/debug/generate-%d.txt" % epoch_num , "w") as fil:
+	#	fil.write(generated)
 
 	#pred_map = pred.max(-1)[1] #(ne , ne)
 
 	return model , preds , loss , generated
 
-def get_evaluate(C , logger , mode , generated , generator = None , test_data = None):
-	key_file = C.valid_rels if mode == "valid" else C.test_rels
-	
-	if test_data:
-		key_file = C.tmp_file_name + ".test"
+def get_evaluate(C , logger , mode , generated , generator , test_data = None):
 
+	golden = write_keyfile(test_data , generator)
 
-	with open(C.tmp_file_name , "w" , encoding = "utf-8") as ofil:
-		ofil.write(generated)
+	#pdb.set_trace()
 
-	if C.dataset == "semeval_2018_task7" and False:
+	micro_f1 , macro_f1 = get_f1(golden , generated , is_file_content = True , no_rel = generator.get_no_rel_name())
+	micro_f1 , macro_f1 = micro_f1 * 100 , macro_f1 * 100
 
-		os.system("perl {script} {output_file} {key_file} > {result_file}".format(
-			script 		= C.test_script ,
-			output_file = C.tmp_file_name,
-			key_file 	= key_file ,
-			result_file = C.tmp_file_name + ".imm"
-		))
-		with open(C.tmp_file_name + ".imm" , "r" , encoding = "utf-8") as rfil:
-			result = rfil.read()
+	# os.makedirs("watch/debug" , exist_ok = True)
+	# with open("watch/debug/golden.txt" , "w") as fil:
+	# 	fil.write(golden)
+	# with open("watch/debug/gene.txt" , "w") as fil:
+	# 	fil.write(generated)
+	# pdb.set_trace()
 
-
-		if not result.strip(): #submission is empty
-			micro_f1 = 0
-			macro_f1 = 0
-		else:
-			micro_f1 = float(re.findall("Micro-averaged result[\\s\\S]*?F1 = *(\\d*?\\.\\d*?)%", result)[0])
-			macro_f1 = float(re.findall("Macro-averaged result[\\s\\S]*?F1 = *(\\d*?\\.\\d*?)%", result)[0])
-
-	else:
-		if test_data is not None: #write test data
-			golden = write_keyfile(test_data , generator)
-
-			#pdb.set_trace()
-
-			micro_f1 , macro_f1 = get_f1(golden , generated , is_file_content = True , no_rel = "NO_RELATION")
-			micro_f1 , macro_f1 = micro_f1 * 100 , macro_f1 * 100
-		else:
-			micro_f1 , macro_f1 = get_f1(key_file, C.tmp_file_name)
-			micro_f1 , macro_f1 = micro_f1 * 100 , macro_f1 * 100
-	#os.system("rm %s" % C.tmp_file_name)
-	#os.system("rm %s.imm" % C.tmp_file_name)
 
 	return micro_f1 , macro_f1
 
@@ -108,7 +92,7 @@ def test(C , logger ,
 
 		with tc.no_grad():
 			model , preds , loss , partial_generated = get_output(
-				C,logger,models,device,loss_func,generator,sents,ents,anss,data_ent
+				C,logger,models,device,loss_func,generator,sents,ents,anss,data_ent , epoch_num = epoch_id
 			)
 		generated += partial_generated
 		avg_loss += float(loss) / len(models)
@@ -117,10 +101,7 @@ def test(C , logger ,
 		pbar.set_description_str("(Test )Epoch {0}".format(epoch_id))
 		pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
 
-	if C.dataset == "ace_2005":
-		micro_f1 , macro_f1 = get_evaluate(C , logger , mode , generated , generator , dataset)
-	else:
-		micro_f1 , macro_f1 = get_evaluate(C , logger , mode , generated)
+	micro_f1 , macro_f1 = get_evaluate(C , logger , mode , generated , generator , dataset)
 
 	#print (result)
 	logger.log ("-----Epoch {} tested. Micro F1 = {:.2f}% , Macro F1 = {:.2f}% , loss = {:.4f}".

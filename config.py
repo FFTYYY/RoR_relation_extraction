@@ -57,6 +57,9 @@ def before_parse_t2g(par):
 	par.add_argument("--rel_weight_smooth" 	, type = float , default = 0)
 	par.add_argument("--rel_weight_norm" 	, action = 'store_true')
 
+	#generation settings
+	par.add_argument("--gene_no_rel" 	, action = "store_true" , default = False) #评测时输出no_rel，ACE05需要开启此项
+
 	#others 
 	par.add_argument("--gpus" 			, type = str , default = "0")
 	par.add_argument("--t2g_seed" 		, type = int , default = 2333)

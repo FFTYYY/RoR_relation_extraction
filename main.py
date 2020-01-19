@@ -33,7 +33,7 @@ def initialize(C , logger , relations , rel_weights):
 	#assert len(rel_weights) == 7
 
 	loss_func = get_loss_func(C.loss , no_rel = no_rel , class_weight = rel_weights)
-	generator = Generator(relations = relations , no_rel = no_rel)
+	generator = Generator(C , relations = relations , no_rel = no_rel)
 
 	#pdb.set_trace()
 

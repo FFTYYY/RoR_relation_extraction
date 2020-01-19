@@ -6,16 +6,18 @@ from torch.autograd import Variable
 import math
 import pdb
 
-def generate_from_pred(pred , data_ent , relations , no_rel , ans_rels = None):
+def generate_from_pred(pred , data_ent , relations , no_rel , gene_no_rel = False , ans_rels = None):
 
 	bs , ne , _ , d = pred.size()
-
 	gene_content = ["" for _ in range(bs)]
 
 	def add_rel(_b , i , j , t):
 
 		if t == no_rel:
-			return
+			if (not gene_no_rel) or (i >= j):
+				return
+		if i == j:
+			return #no self ring
 
 		#只输出有relation的边的类型
 		if ans_rels is not None:
@@ -43,10 +45,12 @@ def generate_from_pred(pred , data_ent , relations , no_rel , ans_rels = None):
 			for j in range(len(data_ent[_b])):
 				#pred[_b,i,j,topic_idx] *= 10 #more topic
 
-				if "COMPARE" in relations:
-					if i > j:
-						pred[_b,i,j,relations.index("COMPARE") ] = 0 #no reverse compare
-				pass
+				sym_relations = ["COMPARE" , "PER-SOC" , "PHYS"]
+				for x in sym_relations:
+					if x in relations:
+						if i > j:
+							pred[_b,i,j,relations.index(x) ] = 0 #no reverse compare
+				#TODO
 		#---------------------------------------------
 
 
@@ -65,7 +69,7 @@ def generate_from_pred(pred , data_ent , relations , no_rel , ans_rels = None):
 	return gene_content
 
 
-def generate(preds , data_ent , relations , no_rel , ans_rels = None , 
+def generate(preds , data_ent , relations , no_rel , gene_no_rel = False , ans_rels = None , 
 		give_me_pred = False , split_generate = False):
 		
 	#----- average predicted scores -----
@@ -76,7 +80,7 @@ def generate(preds , data_ent , relations , no_rel , ans_rels = None ,
 	pred /= len(preds)
 
 	#----- generate from it -----
-	gene_cont = generate_from_pred(pred , data_ent , relations , no_rel , ans_rels = ans_rels)
+	gene_cont = generate_from_pred(pred , data_ent , relations , no_rel , gene_no_rel , ans_rels = ans_rels)
 
 	if not split_generate:
 		gene_cont = "".join(gene_cont)
@@ -87,9 +91,16 @@ def generate(preds , data_ent , relations , no_rel , ans_rels = None ,
 	return gene_cont
 
 class Generator:
-	def __init__(self , relations , no_rel):
+	def __init__(self , C , relations , no_rel):
+		self.gene_no_rel = C.gene_no_rel
 		self.relations = relations
 		self.no_rel = no_rel
 
+	def get_no_rel_name(self):
+		if self.gene_no_rel:
+			return "gene_no_rel" # that means I don't want to tell you no_rel because it need to be generate
+		return self.relations[self.no_rel]
+
 	def __call__(self , preds , data_ent , ans_rels = None, give_me_pred = False, split_generate = False):
-		return generate(preds , data_ent , self.relations , self.no_rel , ans_rels , give_me_pred , split_generate)
+		return generate(preds , data_ent , self.relations , self.no_rel , self.gene_no_rel , 
+				ans_rels , give_me_pred , split_generate)

@@ -8,8 +8,9 @@ def get_f1(gold_file, pred_file, is_file_content=False, precision=4 , no_rel = N
     from sklearn.metrics import f1_score , precision_score , recall_score
 
     if no_rel is not None:
-        global NO_REL
-        NO_REL = no_rel
+        if no_rel is not "gene_no_rel":
+            global NO_REL
+            NO_REL = no_rel
 
     rel_str2id = _get_rels([gold_file, pred_file], is_file_content)
     classes = rel_str2id.classes_
@@ -22,6 +23,9 @@ def get_f1(gold_file, pred_file, is_file_content=False, precision=4 , no_rel = N
     pred = [pred_labels.get(k, NO_REL) for k in keys]
     gold = rel_str2id.transform(gold)
     pred = rel_str2id.transform(pred)
+
+    #import pdb
+    #pdb.set_trace()
 
     pos_classes = set(classes) - {NO_REL}
     pos_labels = rel_str2id.transform(list(pos_classes))

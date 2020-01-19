@@ -8,7 +8,7 @@ import json
 
 #fitlog.commit(__file__)
 
-def parse_a_file(logger , file_text):
+def parse_a_file(logger , file_text , data_name = "test"):
 
 	datas = {}
 
@@ -29,8 +29,10 @@ def parse_a_file(logger , file_text):
 		rel_type , rel_direct = x["relLabels"][0].split("(")
 		rel_direct = "(" + rel_direct
 
-		if rel_type == "NO_RELATION":
-			continue
+		#no no_rel in train, but yes in valid/test because generating need
+		if data_name == "train":
+			if rel_type == "NO_RELATION":
+				continue
 
 		e1_s , e1_e , e1_name = nepairs["m1"]["start"] , nepairs["m1"]["end"] , nepairs["m1"]["id"]
 		e2_s , e2_e , e2_name = nepairs["m2"]["start"] , nepairs["m2"]["end"] , nepairs["m2"]["id"]
@@ -54,7 +56,7 @@ def parse_a_file(logger , file_text):
 
 		if datas.get(text) is None:
 			datas[text] = Data(abstract = text , ents = [])
-			datas[text].text_id = "text_%d" % (len(datas))
+			datas[text].text_id = "%s_text_%d" % (data_name , len(datas))
 			datas[text].fake_ent_names = []
 
 		if not e1_name in datas[text].fake_ent_names:
@@ -62,20 +64,24 @@ def parse_a_file(logger , file_text):
 			datas[text].ents.append(Entity(e1_s , e1_e , e1_real_name))
 			datas[text].ent_names.append(e1_real_name)
 			datas[text].fake_ent_names.append(e1_name)
-		e1_real_name = "%s.%d" % (datas[text].text_id , datas[text].fake_ent_names.index(e1_name))
+		e1_idx = datas[text].fake_ent_names.index(e1_name)
+		e1_real_name = "%s.%d" % (datas[text].text_id , e1_idx)
 
 		if not e2_name in datas[text].fake_ent_names:
 			e2_real_name = "%s.%d" % (datas[text].text_id , len(datas[text].fake_ent_names)) #(text_id.编号)
 			datas[text].ents.append(Entity(e2_s , e2_e , e2_real_name))
 			datas[text].ent_names.append(e2_real_name)
 			datas[text].fake_ent_names.append(e2_name)
-		e2_real_name = "%s.%d" % (datas[text].text_id , datas[text].fake_ent_names.index(e2_name))
+		e2_idx = datas[text].fake_ent_names.index(e2_name)
+		e2_real_name = "%s.%d" % (datas[text].text_id , e2_idx)
 
 		if rel_direct == "(Arg-1,Arg-2)":
 			datas[text].ans.append(Relation(e1_real_name , e2_real_name , type = rel_type))
 		elif rel_direct == "(Arg-2,Arg-1)":
 			datas[text].ans.append(Relation(e2_real_name , e1_real_name , type = rel_type))
 		elif rel_direct == "(Arg-1,Arg-1)": #双向关系，只添加正向边
+			if e1_idx >= e2_idx: #确保小到大
+				e1_real_name , e2_real_name = e2_real_name , e1_real_name
 			datas[text].ans.append(Relation(e1_real_name , e2_real_name , type = rel_type))
 		else:
 			assert False
@@ -93,9 +99,9 @@ def _read_data(
 		dataset_type , rel_weight_smooth , rel_weight_norm ,
 	):
 
-	train_data , rel_list_1 = parse_a_file(logger , file_train_text)
-	test_data  , rel_list_2 = parse_a_file(logger , file_test_text)
-	valid_data , rel_list_3 = parse_a_file(logger , file_valid_text)
+	train_data , rel_list_1 = parse_a_file(logger , file_train_text , "train")
+	test_data  , rel_list_2 = parse_a_file(logger , file_test_text  , "test" )
+	valid_data , rel_list_3 = parse_a_file(logger , file_valid_text , "valid")
 
 	rel_list = rel_list_1 + rel_list_2 + rel_list_3
 
