@@ -33,6 +33,7 @@ def get_f1(gold_file, pred_file, is_file_content=False, precision=4 , no_rel = N
 
     preci = precision_score(gold, pred, average='macro', labels=pos_labels, zero_division=0)
     recal =    recall_score(gold, pred, average='macro', labels=pos_labels, zero_division=0)
+    print ("precision / recall = %.4f , %.4f" % (float(preci) , float(recal)))
     if (preci + recal) == 0:
         f1_macro = 0
     else:

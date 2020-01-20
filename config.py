@@ -52,13 +52,14 @@ def before_parse_t2g(par):
 
 	par.add_argument("--ensemble_size" 	, type = int , default = 5)
 
-
 	par.add_argument("--no_rel_weight" 		, type = float , default = 0.05)
 	par.add_argument("--rel_weight_smooth" 	, type = float , default = 0)
 	par.add_argument("--rel_weight_norm" 	, action = 'store_true')
 
-	#generation settings
+	#validattion and generation settings
 	par.add_argument("--gene_no_rel" 	, action = "store_true" , default = False) #评测时输出no_rel，ACE05需要开启此项
+	par.add_argument("--valid_metric" 	, type = str , default = "micro*macro") # 用来选择最优模型的指标。因为 macro f1 常常不是很靠谱...
+
 
 	#others 
 	par.add_argument("--gpus" 			, type = str , default = "0")

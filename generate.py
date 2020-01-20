@@ -14,15 +14,15 @@ def generate_from_pred(pred , data_ent , relations , no_rel , gene_no_rel = Fals
 	def add_rel(_b , i , j , t):
 
 		if t == no_rel:
-			if (not gene_no_rel) or (i >= j):
+			if not gene_no_rel:
 				return
 		if i == j:
 			return #no self ring
 
 		#只输出有relation的边的类型
-		if ans_rels is not None:
-			if (i,j) not in ans_rels[_b]:
-				return
+		#if ans_rels is not None:
+		#	if (i,j) not in ans_rels[_b]:
+		#		return
 
 		reverse = False
 		if i > j:
@@ -61,10 +61,14 @@ def generate_from_pred(pred , data_ent , relations , no_rel , gene_no_rel = Fals
 		except AssertionError:
 			pdb.set_trace()
 
-		for i in range(len(data_ent[_b])):
-			for j in range(i):
+		if ans_rels is not None:
+			for i,j in ans_rels[_b]:
 				add_rel(_b,i,j,int(pred_map[i , j]))
-				add_rel(_b,j,i,int(pred_map[j , i]))
+		else:
+			for i in range(len(data_ent[_b])):
+				for j in range(i):
+					add_rel(_b,i,j,int(pred_map[i , j]))
+					add_rel(_b,j,i,int(pred_map[j , i]))
 
 	return gene_content
 

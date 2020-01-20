@@ -82,15 +82,28 @@ def train(C , logger , train_data , valid_data , loss_func , generator , n_rel_t
 			"valid" , epoch_id   , run_name , 
 		)
 
-		if best_metric < macro_f1 * micro_f1:
+		if C.valid_metric == "macro*micro":
+			metric = macro_f1 * micro_f1
+		elif C.valid_metric == "macro":
+			metric = macro_f1
+		elif C.valid_metric == "micro":
+			metric = micro_f1
+		else:
+			assert False
+
+		if best_metric < metric:
 			best_epoch = epoch_id
-			best_metric = macro_f1 * micro_f1
+			best_metric = metric
 			with open(C.tmp_file_name + ".model" + "." + str(run_name) , "wb") as fil:
 				pickle.dump(model , fil)
 			
 		#	fitlog.add_best_metric(best_macro_f1 , name = "({0})macro f1".format(ensemble_id))
 
 		model = model.train()
+
+	if not C.no_valid: #reload best model
+		with open(C.tmp_file_name + ".model" + "." + str(run_name) , "rb") as fil:
+			model = pickle.load(fil) #load best valid model
 
 	if test_data is not None:
 		final_micro_f1 , final_macro_f1 , final_test_loss = test(
@@ -100,10 +113,6 @@ def train(C , logger , train_data , valid_data , loss_func , generator , n_rel_t
 			"test" , epoch_id   , run_name , 
 		)
 
-
-	if not C.no_valid:
-		with open(C.tmp_file_name + ".model" + "." + str(run_name) , "rb") as fil:
-			model = pickle.load(fil) #load best valid model
 
 	logger.log("reloaded best model at epoch %d" % best_epoch)
 

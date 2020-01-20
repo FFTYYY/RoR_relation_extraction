@@ -122,7 +122,7 @@ def get_rel_weights(rel_list , dataset_type , rel_weight_smooth = 0 , rel_weight
 	rel_count = Counter(rel_list)
 	relations = list(rel_count.keys())
 
-	if dataset_type == 'semeval_2018_task7':
+	if dataset_type == "semeval_2018_task7":
 		rel2wgh = {
 			"NONE": 0 , "COMPARE": 1, "MODEL-FEATURE": 0.5, "PART_WHOLE": 0.5,
 			"RESULT": 1, "TOPIC": 5, "USAGE": 0.5,
@@ -130,16 +130,18 @@ def get_rel_weights(rel_list , dataset_type , rel_weight_smooth = 0 , rel_weight
 		relations = ["COMPARE", "MODEL-FEATURE", "PART_WHOLE", "RESULT",
 					 "TOPIC", "USAGE", "NONE"]
 		rel_weights = [rel2wgh[r] for r in relations]
+	elif dataset_type == "ace_2005":
+		rel2wgh = {
+			"PART-WHOLE": 1, "PHYS":1, "GEN-AFF":1, "ORG-AFF":1, "ART":1, "PER-SOC":1, "NO_RELATION":0,
+		}
+		relations = ["PART-WHOLE", "PHYS", "GEN-AFF", "ORG-AFF", "ART", "PER-SOC", "NO_RELATION"]
+		rel_weights = [float(rel2wgh[r]) for r in relations]
 	else:
 		rel_top_freq = rel_count.most_common(1)[0][-1]
 		rel_weights = [(rel_top_freq + rel_weight_smooth) / (cnt + rel_weight_smooth) for cnt in rel_count.values()]
 		if rel_weight_norm:
 			rel_weights = np.array(rel_weights) / np.sum(rel_weights)
 		
-		if dataset_type == "ace_2005":
-			relations = ["NO_RELATION"] + relations
-			rel_weights = [0] + rel_weights
-
 	return relations , rel_weights
 
 def tokenize_and_index(logger , tokenizer , dataset , relations):

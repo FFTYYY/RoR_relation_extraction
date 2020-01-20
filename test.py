@@ -62,12 +62,12 @@ def get_evaluate(C , logger , mode , generated , generator , test_data = None):
 	micro_f1 , macro_f1 = get_f1(golden , generated , is_file_content = True , no_rel = generator.get_no_rel_name())
 	micro_f1 , macro_f1 = micro_f1 * 100 , macro_f1 * 100
 
-	# os.makedirs("watch/debug" , exist_ok = True)
-	# with open("watch/debug/golden.txt" , "w") as fil:
-	# 	fil.write(golden)
-	# with open("watch/debug/gene.txt" , "w") as fil:
-	# 	fil.write(generated)
-	# pdb.set_trace()
+	os.makedirs("watch/debug" , exist_ok = True)
+	with open("watch/debug/golden.txt" , "w") as fil:
+		fil.write(golden)
+	with open("watch/debug/gene.txt" , "w") as fil:
+		fil.write(generated)
+	#pdb.set_trace()
 
 
 	return micro_f1 , macro_f1
