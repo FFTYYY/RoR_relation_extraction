@@ -26,16 +26,16 @@ def get_data_and_rels(train_data_file, dataset_type, list_of_rel_files,
 	train_data_file = get_file_content(train_data_file)
 
 	data = parse_a_text_file(FakeLogger() , train_data_file , dirty = False)
-	relations = []
+	rel_list = []
 	for rel_file in list_of_rel_files:
 		rel_file  = get_file_content(rel_file)
-		data , rel_list = parse_a_key_file (FakeLogger() , data , rel_file)
-		relations += rel_list
+		data , partial_rel_list = parse_a_key_file (FakeLogger() , data , rel_file)
+		rel_list += partial_rel_list
 
 	#make datas list
 	data = [d for _ , d in data.items()]
 
-	relations , rel_weights = get_rel_weights(relations , dataset_type,
+	relations , rel_weights = get_rel_weights(rel_list , dataset_type,
 											  rel_weight_smooth, rel_weight_norm)
 
 	return len(data) , relations , rel_weights
