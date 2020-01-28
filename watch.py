@@ -9,7 +9,7 @@ import pdb
 import os , sys
 import math
 from transformers.optimization import get_cosine_schedule_with_warmup , get_linear_schedule_with_warmup
-from generate import generate
+from generate import Generator
 from test import test
 from utils.train_util import pad_sents , get_data_from_batch
 from utils.scorer import get_f1
@@ -20,25 +20,15 @@ from YTools.universe.beautiful_str import beautiful_str
 import json
 from config import get_config
 
+from main import load_data , initialize
+
 #fitlog.debug()
 #fitlog.commit(__file__)
 
-def load_data(C , logger):
-	data_train , data_test , data_valid , relations, rel_weights = get_dataloader(C.dataset)(
-		logger , 
-		C.train_text_1 , C.train_rels_1 ,
-		C.train_text_2 , C.train_rels_2 ,
-		C.test_text  , C.test_rels ,
-		C.valid_text , C.valid_rels ,
-		C.dataset, C.rel_weight_smooth, C.rel_weight_norm,
-	)
-
-	return data_train , data_test , data_valid , relations, rel_weights
 
 def generate_output(
 		C , logger , 
-		dataset , models , 
-		relations , no_rel , 
+		dataset , models , generator 
 	):
 	#----- determine some arguments and prepare model -----
 
@@ -86,7 +76,7 @@ def generate_output(
 				#----- get generated output -----
 
 				ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss] if C.rel_only else None
-				generated , pred = generate(preds , data_ent , relations , no_rel , 
+				generated , pred = generator(preds , data_ent , 
 						ans_rels = ans_rels , give_me_pred = True , split_generate = True)
 				all_generated += "".join(generated)
 
@@ -176,7 +166,8 @@ if __name__ == "__main__":
 	fitlog.debug()
 	
 	#----- prepare data and some global variables -----
-	data_train , data_test , data_valid , relations, _ = load_data(C , logger)
+	data_train , data_test , data_valid , relations, rel_weights = load_data(C , logger)
+	_ , loss_func , generator = initialize(C , logger , relations , rel_weights)
 
 	if C.watch_type == "train":
 		data_watch = data_train
@@ -184,12 +175,6 @@ if __name__ == "__main__":
 		data_watch = data_test
 	if C.watch_type == "valid":
 		data_watch = data_valid
-
-	if C.rel_only: # no no_rel
-		no_rel = -1
-	else:
-		no_rel = len(relations)
-
 
 	#----- load model -----
 	if C.model_save:
@@ -199,15 +184,16 @@ if __name__ == "__main__":
 		trained_models = None
 
 	#----- test -----
-	#if trained_models is not None:
-	#	micro_f1 , macro_f1 = test(
-	#		C , logger , 
-	#		data_test , trained_models , 
-	#		relations , [0,0,0,0,0,0,0] , no_rel , 
-	#		mode = "test" , epoch_id = 0 , ensemble_id = 'final', 
-	#	)
-	#	print ("test result: %.2f %.2f" % (micro_f1 , macro_f1))
+	if trained_models is not None:
+
+		micro_f1 , macro_f1 , _ = test(
+			C , logger , 
+			data_watch , trained_models , 
+			loss_func , generator , 
+			mode = "test" , epoch_id = 0 , run_name = "0" , need_generated = False , 
+		)
+		print ("test result: %.2f %.2f" % (micro_f1 , macro_f1))
 
 	#----- generate -----
 
-	generate_output(C , logger , data_watch , trained_models , relations , no_rel)
+	generate_output(C , logger , data_watch , trained_models , generator)

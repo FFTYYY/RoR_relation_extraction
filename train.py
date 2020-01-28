@@ -104,6 +104,7 @@ def train(C , logger , train_data , valid_data , loss_func , generator , n_rel_t
 	if not C.no_valid: #reload best model
 		with open(C.tmp_file_name + ".model" + "." + str(run_name) , "rb") as fil:
 			model = pickle.load(fil) #load best valid model
+		logger.log("reloaded best model at epoch %d" % best_epoch)
 
 	if test_data is not None:
 		final_micro_f1 , final_macro_f1 , final_test_loss = test(
@@ -114,7 +115,6 @@ def train(C , logger , train_data , valid_data , loss_func , generator , n_rel_t
 		)
 
 
-	logger.log("reloaded best model at epoch %d" % best_epoch)
 
 	return model
 

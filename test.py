@@ -49,18 +49,8 @@ def get_evaluate(C , logger , mode , generated , generator , test_data = None):
 
 	golden = write_keyfile(test_data , generator)
 
-	#pdb.set_trace()
-
 	micro_f1 , macro_f1 = get_f1(golden , generated , is_file_content = True , no_rel = generator.get_no_rel_name())
 	micro_f1 , macro_f1 = micro_f1 * 100 , macro_f1 * 100
-
-	os.makedirs("watch/debug" , exist_ok = True)
-	with open("watch/debug/golden.txt" , "w") as fil:
-		fil.write(golden)
-	with open("watch/debug/gene.txt" , "w") as fil:
-		fil.write(generated)
-	#pdb.set_trace()
-
 
 	return micro_f1 , macro_f1
 
@@ -71,14 +61,6 @@ def test(C , logger ,
 		mode = "valid" , epoch_id = 0 , run_name = "0" , need_generated = False , 
 	):
 		
-
-	_step = 0
-	if epoch_id == 1 or epoch_id == 16:
-		debug_file = open("watch/debug/epoch_{0}.txt".format(epoch_id) , "w")
-	else:
-		debug_file = None
-
-
 	device , batch_size , batch_numb , models = before_test(C , logger , dataset , models)
 
 	pbar = tqdm(range(batch_numb) , ncols = 70)
@@ -96,67 +78,6 @@ def test(C , logger ,
 			)
 		generated += partial_generated
 		avg_loss += float(loss) / len(models)
-
-		# debug
-		if (not debug_file is None) and (batch_id <= 5):
-			prd = preds[0]
-			for _b in range(len(prd)):
-				chooses = []
-				goldens = []
-
-				pred_vectors = []
-				the_loss = 0.
-				good = 0
-				for _i,_j,golden in anss[_b]:
-					choose = prd[_b,_i,_j].max(-1)[1]
-
-					chooses.append(int(choose))
-					goldens.append(int(golden))
-					good += int(int(golden) == int(choose)) 
-					pred_vectors.append([
-						_i , _j , int(golden) , int(choose) , 
-						"%.4f" % (float(prd[_b,_i,_j,golden])) , "%.4f" % (float(prd[_b,_i,_j,choose])) , 
-						"%.4f" % (-math.log(float(prd[_b,_i,_j,golden]))) , int(int(golden) == int(choose)) 
-					])
-					the_loss -= math.log(float(prd[_b,_i,_j,golden]))
-				from YTools.universe.beautiful_str import beautiful_str
-				from sklearn.metrics import f1_score , precision_score , recall_score
-
-				#----- text id -----
-
-				debug_file.write("text_%d:\n" % _step)
-
-				#----- sample f1 -----
-				f1_micro = f1_score(goldens, chooses, average='micro', labels = [0,1,2,3,4,5] , zero_division=0)
-
-				preci = precision_score(goldens, chooses, average='macro', labels = [0,1,2,3,4,5] , zero_division=0)
-				recal =    recall_score(goldens, chooses, average='macro', labels = [0,1,2,3,4,5] , zero_division=0)
-				debug_file.write ("precision / recall = %.4f , %.4f\n" % (float(preci) , float(recal)))
-				if (preci + recal) == 0:
-					f1_macro = 0
-				else:
-					f1_macro = (2 * preci * recal) / (preci + recal)
-				debug_file.write("f1_micro / f1_macro = %.4f , %.4f\n" % (float(f1_micro) , float(f1_macro)))
-				#----- loss -----
-
-				debug_file.write("loss: %.4f / %d = %.4f \n" % (
-					the_loss , len(anss[_b]) , the_loss / len(anss[_b])
-				))
-				debug_file.write("acc: %d/%d = %.4f \n\n" % (
-					good , len(anss[_b]) , good / len(anss[_b])
-				))
-
-				#----- details -----
-
-				debug_file.write(beautiful_str(
-					["u" , "v" , "golden" , "model choice" , "golden prob" , "model choice prob" , "loss contribution" , "good"] , 
-					pred_vectors , 
-				))
-
-				debug_file.write("\n\n")
-				_step += 1
-			debug_file.write ("\n\n now batch loss = %.4f , avg loss = %.4f , for validation.\n" % 
-				(float(loss) , avg_loss / (batch_id+1)))
 
 		pbar.set_description_str("(Test )Epoch {0}".format(epoch_id))
 		pbar.set_postfix_str("loss = %.4f (avg = %.4f)" % ( float(loss) , avg_loss / (batch_id+1)))
