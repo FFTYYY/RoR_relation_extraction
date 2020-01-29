@@ -60,29 +60,34 @@ def parse_a_file(logger , file_text , data_name = "test"):
 			datas[text].fake_ent_names = []
 
 		if not e1_name in datas[text].fake_ent_names:
-			e1_real_name = "%s.%d" % (datas[text].text_id , len(datas[text].fake_ent_names)) #(text_id.编号)
+			e1_real_name = "%s.%d" % (datas[text].text_id , len(datas[text].fake_ent_names)+1) #(text_id.编号)
 			datas[text].ents.append(Entity(e1_s , e1_e , e1_real_name))
 			datas[text].ent_names.append(e1_real_name)
 			datas[text].fake_ent_names.append(e1_name)
-		e1_idx = datas[text].fake_ent_names.index(e1_name)
+		e1_idx = datas[text].fake_ent_names.index(e1_name)+1
 		e1_real_name = "%s.%d" % (datas[text].text_id , e1_idx)
 
 		if not e2_name in datas[text].fake_ent_names:
-			e2_real_name = "%s.%d" % (datas[text].text_id , len(datas[text].fake_ent_names)) #(text_id.编号)
+			e2_real_name = "%s.%d" % (datas[text].text_id , len(datas[text].fake_ent_names)+1) #(text_id.编号)
 			datas[text].ents.append(Entity(e2_s , e2_e , e2_real_name))
 			datas[text].ent_names.append(e2_real_name)
 			datas[text].fake_ent_names.append(e2_name)
-		e2_idx = datas[text].fake_ent_names.index(e2_name)
+		e2_idx = datas[text].fake_ent_names.index(e2_name)+1
 		e2_real_name = "%s.%d" % (datas[text].text_id , e2_idx)
 
 		if rel_direct == "(Arg-1,Arg-2)":
 			datas[text].ans.append(Relation(e1_real_name , e2_real_name , type = rel_type))
 		elif rel_direct == "(Arg-2,Arg-1)":
 			datas[text].ans.append(Relation(e2_real_name , e1_real_name , type = rel_type))
-		elif rel_direct == "(Arg-1,Arg-1)": #双向关系，只添加正向边
+		elif rel_direct == "(Arg-1,Arg-1)": # 双向关系
+			#只添加正向边
 			if e1_idx >= e2_idx: #确保小到大
 				e1_real_name , e2_real_name = e2_real_name , e1_real_name
 			datas[text].ans.append(Relation(e1_real_name , e2_real_name , type = rel_type))
+
+			#if data_name == "train": # 在训练集中，也添加反向边
+			#	datas[text].ans.append(Relation(e2_real_name , e1_real_name , type = rel_type))
+
 		else:
 			assert False
 
