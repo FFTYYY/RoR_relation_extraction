@@ -23,7 +23,7 @@ def before_train(C , logger , train_data , n_rel_typs):
 	optimizer = tc.optim.Adam(params = model.parameters() , lr = C.lr)
 	scheduler = get_cosine_schedule_with_warmup(
 		optimizer = optimizer , 
-		num_warmup_steps = C.n_warmup , 
+		num_warmup_steps = int(C.warmup_prop * batch_numb * C.epoch_numb), 
 		num_training_steps = batch_numb * C.epoch_numb , 
 	)
 
@@ -82,7 +82,7 @@ def train(C , logger , train_data , valid_data , loss_func , generator , n_rel_t
 			"valid" , epoch_id   , run_name , 
 		)
 
-		if C.valid_metric == "macro*micro":
+		if C.valid_metric in ["macro*micro" , "micro*macro"]:
 			metric = macro_f1 * micro_f1
 		elif C.valid_metric == "macro":
 			metric = macro_f1
