@@ -8,7 +8,7 @@ CUDA_VISIBLE_DEVICES=0 python train.py --model=graph_trans --ensemble=5
 CUDA_VISIBLE_DEVICES=0 python main.py --model=graph_trans --ensemble=5 \
 	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
 	--valid_rels=./data/semeval_2018_task7/keys.test.2.txt \
-	--no_valid --no_fitlog
+	--no_valid --warmup_prop=0.1127 
 
 CUDA_VISIBLE_DEVICES=3 python main.py --model=graph_trans --ensemble=5 \
 	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
@@ -26,16 +26,27 @@ CUDA_VISIBLE_DEVICES=0 python main.py --model=graph_trans --ensemble=5 --rel_onl
 #ace:
 
 #train
-CUDA_VISIBLE_DEVICES=1 python main.py --model=graph_trans --ensemble=1 \
+
+# graph model
+CUDA_VISIBLE_DEVICES=3 python main.py --model=graph_trans --ensemble=1 \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
---test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_test.json \
---dataset=ace_2005 --gene_no_rel --rel_only --valid_metric=macro --batch_size=32 --t2g_lr=5e-5 --no_rel_weight=0.8
+--test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
+--dataset=ace_2005 --gene_no_rel --rel_only --valid_metric=macro \
+--t2g_batch_size=32 --t2g_lr=5e-5 --no_rel_weight=1 --epoch_numb=30 --scheduler=cosine
+
+# baseline
+CUDA_VISIBLE_DEVICES=6 python main.py --model=naive_bert --ensemble=1 \
+--train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
+--valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
+--test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
+--dataset=ace_2005 --gene_no_rel --rel_only --valid_metric=macro \
+--t2g_batch_size=32 --t2g_lr=5e-5 --no_rel_weight=0.85 --epoch_numb=30 --scheduler=linear
 
 #watch
 python watch.py \
 --dataset=ace_2005 --gene_no_rel --rel_only \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
---test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
---watch_type=test --model_save=model_ace_r1_3.pkl --gene_file=watch/ace2005-bctest
+--test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/cts.json \
+--watch_type=test --model_save=model_r6.pkl --gene_file=watch/ace2005-cts

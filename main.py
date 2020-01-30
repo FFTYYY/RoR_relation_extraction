@@ -68,7 +68,7 @@ def main():
 		loss_func , generator , 
 		mode = "test" , epoch_id = C.epoch_numb , run_name = 'final', 
 	)
-	fitlog.add_hyper(macro_f1 , name = "(ensembled)macro f1")
+	fitlog.add_hyper(macro_f1 , name = "result")
 
 	#----- save ensembled model -----
 	if C.model_save:

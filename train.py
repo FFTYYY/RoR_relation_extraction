@@ -21,7 +21,12 @@ def before_train(C , logger , train_data , n_rel_typs):
 	model = get_model(C.model)(n_rel_typs = n_rel_typs , dropout = C.dropout).to(device)
 
 	optimizer = tc.optim.Adam(params = model.parameters() , lr = C.lr)
-	scheduler = get_cosine_schedule_with_warmup(
+
+	scheduler_makers = {
+		"linear": get_linear_schedule_with_warmup ,
+		"cosine": get_cosine_schedule_with_warmup ,
+	}
+	scheduler = scheduler_makers[C.scheduler](
 		optimizer = optimizer , 
 		num_warmup_steps = int(C.warmup_prop * batch_numb * C.epoch_numb), 
 		num_training_steps = batch_numb * C.epoch_numb , 
