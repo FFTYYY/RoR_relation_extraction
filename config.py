@@ -48,7 +48,7 @@ def before_parse_t2g(par):
 	par.add_argument("--t2g_lr" 		, type = float , default = 1e-4)
 	par.add_argument("--fine_tune" 		, action = "store_true" , default = False)
 	par.add_argument("--warmup_prop"	, type = float , default = 0.1)
-	par.add_argument("--scheduler" 		, type = str , default = "linear") #linear or cosine
+	par.add_argument("--scheduler" 		, type = str , default = "cosine") #linear or cosine
 
 
 	par.add_argument("--ensemble_size" 	, type = int , default = 5)

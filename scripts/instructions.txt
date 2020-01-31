@@ -8,7 +8,7 @@ CUDA_VISIBLE_DEVICES=0 python train.py --model=graph_trans --ensemble=5
 CUDA_VISIBLE_DEVICES=0 python main.py --model=graph_trans --ensemble=5 \
 	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
 	--valid_rels=./data/semeval_2018_task7/keys.test.2.txt \
-	--no_valid --warmup_prop=0.1127 
+	--no_valid --warmup_prop=0.1127 --scheduler=cosine
 
 CUDA_VISIBLE_DEVICES=3 python main.py --model=graph_trans --ensemble=5 \
 	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
@@ -28,12 +28,12 @@ CUDA_VISIBLE_DEVICES=0 python main.py --model=graph_trans --ensemble=5 --rel_onl
 #train
 
 # graph model
-CUDA_VISIBLE_DEVICES=3 python main.py --model=graph_trans --ensemble=1 \
+CUDA_VISIBLE_DEVICES=2 python main.py --model=graph_trans --ensemble=1 \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
 --test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
 --dataset=ace_2005 --gene_no_rel --rel_only --valid_metric=macro \
---t2g_batch_size=32 --t2g_lr=5e-5 --no_rel_weight=1 --epoch_numb=30 --scheduler=cosine
+--t2g_batch_size=64 --t2g_lr=2e-4 --no_rel_weight=0.85 --epoch_numb=30 --scheduler=cosine
 
 # baseline
 CUDA_VISIBLE_DEVICES=6 python main.py --model=naive_bert --ensemble=1 \
@@ -41,7 +41,7 @@ CUDA_VISIBLE_DEVICES=6 python main.py --model=naive_bert --ensemble=1 \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
 --test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
 --dataset=ace_2005 --gene_no_rel --rel_only --valid_metric=macro \
---t2g_batch_size=32 --t2g_lr=5e-5 --no_rel_weight=0.85 --epoch_numb=30 --scheduler=linear
+--t2g_batch_size=4 --t2g_lr=2e-5 --no_rel_weight=1 --epoch_numb=30 --scheduler=linear
 
 #watch
 python watch.py \

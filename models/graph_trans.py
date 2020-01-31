@@ -47,7 +47,7 @@ class Model(nn.Module):
 		nn.init.constant_(self.wo.bias.data , 0)
 
 
-		nn.init.normal_(self.ent_emb.data , 0 , 0.01)
+		nn.init.normal_(self.ent_emb.data , 0 , 1e-2)
 		#nn.init.normal_(self.pos_embedding.weight , 0 , 0.01)
 		#nn.init.normal_(self.bert.embeddings.token_type_embeddings.weight , 0 , 0.01)
 
