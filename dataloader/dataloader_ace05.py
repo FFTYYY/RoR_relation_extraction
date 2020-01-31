@@ -29,11 +29,6 @@ def parse_a_file(logger , file_text , data_name = "test"):
 		rel_type , rel_direct = x["relLabels"][0].split("(")
 		rel_direct = "(" + rel_direct
 
-		#no no_rel in train, but yes in valid/test because generating need
-		if data_name == "train":
-			if rel_type == "NO_RELATION":
-				continue
-
 		e1_s , e1_e , e1_name = nepairs["m1"]["start"] , nepairs["m1"]["end"] , nepairs["m1"]["id"]
 		e2_s , e2_e , e2_name = nepairs["m2"]["start"] , nepairs["m2"]["end"] , nepairs["m2"]["id"]
 		e1_s = len(" ".join(x["words"][:e1_s])) + (e1_s!=0) # +1 for space
@@ -74,6 +69,11 @@ def parse_a_file(logger , file_text , data_name = "test"):
 			datas[text].fake_ent_names.append(e2_name)
 		e2_idx = datas[text].fake_ent_names.index(e2_name)+1
 		e2_real_name = "%s.%d" % (datas[text].text_id , e2_idx)
+
+		#no no_rel in train, but yes in valid/test because generating need
+		if data_name == "train":
+			if rel_type == "NO_RELATION":
+				continue
 
 		if rel_direct == "(Arg-1,Arg-2)":
 			datas[text].ans.append(Relation(e1_real_name , e2_real_name , type = rel_type))
