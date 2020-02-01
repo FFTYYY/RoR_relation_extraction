@@ -100,9 +100,7 @@ class Generator:
 		self.relations = relations
 		self.no_rel = no_rel
 
-	def get_no_rel_name(self):
-		if self.gene_no_rel:
-			return "gene_no_rel" # that means I don't want to tell you no_rel because it need to be generate
+	def get_no_rel_name(self): #for scorer
 		return self.relations[self.no_rel]
 
 	def __call__(self , preds , data_ent , ans_rels = None, give_me_pred = False, split_generate = False):
