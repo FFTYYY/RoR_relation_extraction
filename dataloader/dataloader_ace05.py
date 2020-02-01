@@ -25,10 +25,6 @@ def parse_a_file(logger , file_text , data_name = "test"):
 		text = " ".join(x["words"])
 		nepairs = json.loads(x["nePairs"])[0]
 
-
-		rel_type , rel_direct = x["relLabels"][0].split("(")
-		rel_direct = "(" + rel_direct
-
 		e1_s , e1_e , e1_name = nepairs["m1"]["start"] , nepairs["m1"]["end"] , nepairs["m1"]["id"]
 		e2_s , e2_e , e2_name = nepairs["m2"]["start"] , nepairs["m2"]["end"] , nepairs["m2"]["id"]
 		e1_s = len(" ".join(x["words"][:e1_s])) + (e1_s!=0) # +1 for space
@@ -70,6 +66,8 @@ def parse_a_file(logger , file_text , data_name = "test"):
 		e2_idx = datas[text].fake_ent_names.index(e2_name)+1
 		e2_real_name = "%s.%d" % (datas[text].text_id , e2_idx)
 
+		rel_type , rel_direct = x["relLabels"][0].split("(")
+		rel_direct = "(" + rel_direct
 		#no no_rel in train, but yes in valid/test because generating need
 		if data_name == "train":
 			if rel_type == "NO_RELATION":
@@ -100,7 +98,7 @@ def parse_a_file(logger , file_text , data_name = "test"):
 	return datas , rel_list
 
 def _read_data(
-		logger , file_train_text , file_test_text , file_valid_text ,
+		C , logger , file_train_text , file_test_text , file_valid_text ,
 		dataset_type , rel_weight_smooth , rel_weight_norm ,
 	):
 
@@ -112,7 +110,7 @@ def _read_data(
 
 
 	train_data , test_data , valid_data , relations , rel_weights = data_process(
-		logger , 
+		C , logger , 
 		train_data , test_data , valid_data , rel_list , 
 		dataset_type , rel_weight_smooth , rel_weight_norm , 
 	)
@@ -133,7 +131,7 @@ def _read_data(
 
 
 def read_data(
-		logger , 
+		C , logger , 
 		train_text_1 , train_rels_1 ,
 		train_text_2 , train_rels_2 ,
 		test_text  , test_rels ,
@@ -142,7 +140,7 @@ def read_data(
 	):
 
 	return _read_data(
-		logger , train_text_1 , test_text , valid_text ,
+		C , logger , train_text_1 , test_text , valid_text ,
 		dataset_type , rel_weight_smooth , rel_weight_norm ,
 	)
 	

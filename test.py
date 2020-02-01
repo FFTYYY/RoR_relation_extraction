@@ -38,7 +38,7 @@ def get_output(C , logger ,
 
 		loss = loss_func(preds[i] , anss , ents)
 
-	ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss] if C.rel_only else None
+	ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss] if C.gene_in_data else None
 	generated = generator(preds , data_ent , ans_rels = ans_rels)
 
 	#pred_map = pred.max(-1)[1] #(ne , ne)
@@ -49,7 +49,14 @@ def get_evaluate(C , logger , mode , generated , generator , test_data = None):
 
 	golden = write_keyfile(test_data , generator)
 
-	micro_f1 , macro_f1 = get_f1(golden , generated , is_file_content = True , no_rel = generator.get_no_rel_name())
+	os.makedirs("watch/debug" , exist_ok = True)
+	with open("watch/debug/golden.txt" , "w") as fil:
+		fil.write(golden)
+	with open("watch/debug/gene.txt" , "w") as fil:
+		fil.write(generated)
+
+
+	micro_f1 , macro_f1 = get_f1(golden , generated , is_file_content = True , no_rel_name = generator.get_no_rel_name())
 	micro_f1 , macro_f1 = micro_f1 * 100 , macro_f1 * 100
 
 	return micro_f1 , macro_f1
@@ -60,7 +67,7 @@ def test(C , logger ,
 		loss_func , generator , 
 		mode = "valid" , epoch_id = 0 , run_name = "0" , need_generated = False , 
 	):
-		
+
 	device , batch_size , batch_numb , models = before_test(C , logger , dataset , models)
 
 	pbar = tqdm(range(batch_numb) , ncols = 70)

@@ -135,6 +135,7 @@ def get_rel_weights(rel_list , dataset_type , rel_weight_smooth = 0 , rel_weight
 			"PART-WHOLE": 1, "PHYS":1, "GEN-AFF":1, "ORG-AFF":1, "ART":1, "PER-SOC":1, "NO_RELATION":0,
 		}
 		relations = ["PART-WHOLE", "PHYS", "GEN-AFF", "ORG-AFF", "ART", "PER-SOC", "NO_RELATION"]
+
 		rel_weights = [float(rel2wgh[r]) for r in relations]
 	else:
 		rel_top_freq = rel_count.most_common(1)[0][-1]
@@ -176,7 +177,7 @@ def validize(logger , dataset , mode = "train"):
 
 
 def data_process(
-		logger , 
+		C , logger , 
 		train_data , test_data , valid_data , rel_list , 
 		dataset_type , rel_weight_smooth , rel_weight_norm , verbose = True , 
 	):
@@ -199,8 +200,37 @@ def data_process(
 	test_data  = data_post_process(test_data  , "test")
 	valid_data = data_post_process(valid_data , "test")
 
-	#----- final process ----
+	#----- special process ----
 
+	if C.binary:
+		no_rel_idx = relations.index(C.no_rel_name)
+		for data in [train_data , test_data , valid_data]:
+			for x in data:
+				for r in x.ans:
+					r.type = (r.type != no_rel_idx) # 0 for negative , 1 for positive
+		relations = ["NEGATIVE" , "POSITIVE"] 
+		rel_weights = [1,1]
+		C.no_rel_name = "NEGATIVE"
+	if C.pos_only:
+		no_rel_idx = relations.index(C.no_rel_name)
+
+		#弹出所有标注的负例
+		for data in [train_data , test_data , valid_data]:
+			for x in data:
+				to_rem = []
+				for i , r in enumerate(x.ans):
+					if r.type == no_rel_idx:
+						to_rem.append(i)
+				to_rem.reverse() # 倒过来弹出，防止影响顺序
+				for i in to_rem:
+					x.ans.pop(i)
+					
+
+		relations.pop(no_rel_idx)
+		rel_weights.pop(no_rel_idx)
+
+
+	#----- final process ----
 
 	random.shuffle(train_data)
 

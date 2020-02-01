@@ -28,7 +28,6 @@ def before_parse_t2g(par):
 
 	par.add_argument("--test_script", type = str , default = "./data/semeval_2018_task7/semeval2018_task7_scorer-v1.2.pl")
 	par.add_argument("--dataset" 	, default = 'semeval_2018_task7')
-	par.add_argument("--rel_only" 	, action = "store_true" , default = False)
 
 	#model selection
 	par.add_argument("--model" 		, type = str , default = "naive_bert" , 
@@ -39,7 +38,7 @@ def before_parse_t2g(par):
 
 	#model structure 
 
-	par.add_argument("--dropout" 	, type = float , default = 0.0)
+	par.add_argument("--dropout"      , type = float , default = 0.0)
 	par.add_argument("--loss" 		, type = str , default = "loss_3")
 
 	#training arguments
@@ -50,16 +49,21 @@ def before_parse_t2g(par):
 	par.add_argument("--warmup_prop"	, type = float , default = 0.1)
 	par.add_argument("--scheduler" 		, type = str , default = "cosine") #linear or cosine
 
-
 	par.add_argument("--ensemble_size" 	, type = int , default = 5)
 
 	par.add_argument("--no_rel_weight" 		, type = float , default = 0.05)
 	par.add_argument("--rel_weight_smooth" 	, type = float , default = 0)
 	par.add_argument("--rel_weight_norm" 	, action = 'store_true')
+	par.add_argument("--no_rel_name" 		, type = str , default = "NONE") # 只训练其判断正负例
+
+	#two-phase training
+	par.add_argument("--binary" 		, action = "store_true" , default = False) # 只训练其判断正负例
+	par.add_argument("--pos_only" 		, action = "store_true" , default = False) # 只训练其给正例分类
 
 	#validattion and generation settings
-	par.add_argument("--gene_no_rel" 	, action = "store_true" , default = False) #评测时输出no_rel，ACE05需要开启此项
-	par.add_argument("--valid_metric" 	, type = str , default = "micro*macro") # 用来选择最优模型的指标。因为 macro f1 常常不是很靠谱...
+	par.add_argument("--gene_no_rel" 	, action = "store_true" , default = False) # 评测时输出no_rel
+	par.add_argument("--gene_in_data" 	, action = "store_true" , default = False) # 评测时只对测试集中出现的实体对生成
+	par.add_argument("--valid_metric" 	, type = str , default = "micro*macro")    # 用来选择最优模型的指标。因为 macro f1 常常不是很靠谱...
 
 
 	#others 

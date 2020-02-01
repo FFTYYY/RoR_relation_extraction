@@ -9,13 +9,17 @@ import pdb
 
 def load_data(C , logger):
 	data_train , data_test , data_valid , relations, rel_weights = get_dataloader(C.dataset)(
-		logger , 
+		C , logger , 
 		C.train_text_1 , C.train_rels_1 ,
 		C.train_text_2 , C.train_rels_2 ,
 		C.test_text  , C.test_rels ,
 		C.valid_text , C.valid_rels ,
 		C.dataset, C.rel_weight_smooth, C.rel_weight_norm,
 	)
+
+	logger.log("num of sents / entity pairs in train: %d / %d" % ( len(data_train) , sum([ len(x.ents) * (len(x.ents)-1) / 2 for x in data_train  ])  ))
+	logger.log("num of sents / instances in test    : %d / %d" % ( len(data_test ) , sum([ len(x.ans) for x in data_test  ])  ))
+	logger.log("num of sents / instances in valid   : %d / %d" % ( len(data_valid) , sum([ len(x.ans) for x in data_valid  ])  ))
 
 	return data_train , data_test , data_valid , relations, rel_weights
 
@@ -24,8 +28,8 @@ def initialize(C , logger , relations , rel_weights):
 	n_rel_typs = len(relations)
 
 	no_rel = 0
-	if "NONE" in relations: no_rel = relations.index("NONE")
-	if "NO_RELATION" in relations: no_rel = relations.index("NO_RELATION")
+	no_rel = relations.index(C.no_rel_name)
+
 	rel_weights[no_rel] = C.no_rel_weight
 	logger.log("relations : {0}".format(relations))
 	logger.log("rel_weights : {0}".format(rel_weights))

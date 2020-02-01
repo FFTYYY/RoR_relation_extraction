@@ -75,7 +75,7 @@ def generate_output(
 
 				#----- get generated output -----
 
-				ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss] if C.rel_only else None
+				ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss] if C.gene_in_data else None
 				generated , pred = generator(preds , data_ent , 
 						ans_rels = ans_rels , give_me_pred = True , split_generate = True)
 				all_generated += "".join(generated)

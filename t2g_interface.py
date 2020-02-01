@@ -107,7 +107,7 @@ def batch2loss(C, data, dataset_type, model ,
 	#----- generate -----
 
 	if if_generate:
-		ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss] if C.rel_only else None
+		ans_rels = [ [(u,v) for u,v,t in bat] for bat in anss] if C.gene_in_data else None
 		generated = generator([pred] , data_ent , ans_rels = ans_rels)
 	else:
 		generated = ""

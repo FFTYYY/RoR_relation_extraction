@@ -140,7 +140,7 @@ def parse_a_key_file(logger , datas , cont):
 
 
 def file_content2data(
-		logger , 
+		C , logger , 
 		train_text_1 , train_rels_1 , 
 		train_text_2 , train_rels_2 ,
 		test_text , test_rels , 
@@ -171,13 +171,13 @@ def file_content2data(
 	valid_data = [d for _ , d in valid_data.items()]
 
 	return data_process(
-		logger , 
+		C , logger , 
 		train_data , test_data , valid_data , rel_list , 
 		dataset_type , rel_weight_smooth , rel_weight_norm , verbose , 
 	)
 
 def read_data(
-		logger , 
+		C , logger , 
 		file_train_text_1 , file_train_rels_1 , 
 		file_train_text_2 , file_train_rels_2 , 
 		file_test_text , file_test_rels , 

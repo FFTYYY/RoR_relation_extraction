@@ -2,33 +2,27 @@ import numpy as np
 
 __all__ = ['get_f1']
 
-NO_REL = 'NONE'
-
-def get_f1(gold_file, pred_file, is_file_content=False, precision=4 , no_rel = None):
+def get_f1(gold_file, pred_file, is_file_content=False, precision=4 , no_rel_name = None):
     from sklearn.metrics import f1_score , precision_score , recall_score
 
-    if no_rel is not None:
-        if no_rel is not "gene_no_rel":
-            global NO_REL
-            NO_REL = no_rel
-
-    rel_str2id = _get_rels([gold_file, pred_file], is_file_content)
+    rel_str2id = _get_rels([gold_file, pred_file], is_file_content , no_rel_name = no_rel_name)
     classes = rel_str2id.classes_
 
     gold_labels = _get_data(gold_file, classes, is_file_content=is_file_content)
     pred_labels = _get_data(pred_file, classes, is_file_content=is_file_content)
     keys = sorted(set(gold_labels.keys()) | set(pred_labels.keys()))
 
-    gold = [gold_labels.get(k, NO_REL) for k in keys]
-    pred = [pred_labels.get(k, NO_REL) for k in keys]
+    gold = [gold_labels.get(k, no_rel_name) for k in keys]
+    pred = [pred_labels.get(k, no_rel_name) for k in keys]
     gold = rel_str2id.transform(gold)
     pred = rel_str2id.transform(pred)
 
     #import pdb
     #pdb.set_trace()
 
-    pos_classes = set(classes) - {NO_REL}
+    pos_classes = set(classes) - {no_rel_name}
     pos_labels = rel_str2id.transform(list(pos_classes))
+
     f1_micro = f1_score(gold, pred, average='micro', labels=pos_labels, zero_division=0)
 
     preci = precision_score(gold, pred, average='macro', labels=pos_labels, zero_division=0)
@@ -75,7 +69,7 @@ def _get_data(file, classes, is_file_content=False):
     return rel_labels
 
 
-def _get_rels(file_list, is_file_content=False):
+def _get_rels(file_list, is_file_content=False , no_rel_name = "NONE"):
     from sklearn.preprocessing import LabelEncoder
 
     data = []
@@ -86,7 +80,7 @@ def _get_rels(file_list, is_file_content=False):
             with open(file) as f:
                 data += [line.strip() for line in f if line.strip()]
 
-    relations = [NO_REL]
+    relations = [no_rel_name]
     for line in data:
         rel = line.rsplit('(', 1)[0]
 
