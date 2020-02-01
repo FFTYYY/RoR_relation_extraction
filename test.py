@@ -56,7 +56,8 @@ def get_evaluate(C , logger , mode , generated , generator , test_data = None):
 		fil.write(generated)
 
 
-	micro_f1 , macro_f1 = get_f1(golden , generated , is_file_content = True , no_rel_name = generator.get_no_rel_name())
+	micro_f1 , macro_f1 = get_f1(golden , generated , is_file_content = True , 
+			no_rel_name = generator.get_no_rel_name() , logger = logger)
 	micro_f1 , macro_f1 = micro_f1 * 100 , macro_f1 * 100
 
 	return micro_f1 , macro_f1

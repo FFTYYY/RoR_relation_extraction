@@ -50,11 +50,22 @@ CUDA_VISIBLE_DEVICES=0 python main.py --model=graph_trans --ensemble=1 --no_rel_
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
 --test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
 --dataset=ace_2005 --gene_in_data --valid_metric=macro --scheduler=cosine --binary --gene_no_rel \
---t2g_batch_size=32 --t2g_lr=1e-4 --no_rel_weight=1 --epoch_numb=30  --warmup_prop=0.02 --no_fitlog
+--t2g_batch_size=32 --t2g_lr=1e-4 --no_rel_weight=1 --epoch_numb=30  --warmup_prop=0.02 --model_save=binary_r1.pkl
 
-CUDA_VISIBLE_DEVICES=0 python main.py --model=graph_trans --ensemble=1 --no_rel_name=NO_RELATION \
+# pos_only
+CUDA_VISIBLE_DEVICES=7 python main.py --model=graph_trans --ensemble=1 --no_rel_name=NO_RELATION \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
 --test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
---dataset=ace_2005 --gene_in_data --valid_metric=macro --scheduler=cosine --binary --gene_no_rel \
---t2g_batch_size=32 --t2g_lr=1e-4 --no_rel_weight=1 --epoch_numb=30  --warmup_prop=0.02 --no_fitlog
+--dataset=ace_2005 --gene_in_data --valid_metric=macro --scheduler=cosine --pos_only \
+--t2g_batch_size=32 --t2g_lr=1e-4 --epoch_numb=30  --warmup_prop=0.02 --model_save=psonly_r7.pkl
+
+# watch
+python watch.py \
+--dataset=ace_2005 --gene_no_rel --gene_in_data --no_rel_name=NO_RELATION \
+--train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
+--valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
+--test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/cts.json \
+--watch_type=test --gene_file=watch/ace2005-cts \
+--binary --pos_only  --pos_thresh=0.1 --model_save=binary_r1.pkl --model_save_2=psonly_r2.pkl
+

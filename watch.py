@@ -1,5 +1,6 @@
 '''
-	watch trained model results
+	测试模型
+	并生成数据集、模型生成结果的分析
 '''
 from transformers import BertModel , BertTokenizer
 from dataloader import get_dataloader
@@ -19,6 +20,7 @@ import re
 from YTools.universe.beautiful_str import beautiful_str
 import json
 from config import get_config
+from utils.two_phase import TwoPhaseModel
 
 from main import load_data , initialize
 
@@ -81,7 +83,6 @@ def generate_output(
 				all_generated += "".join(generated)
 
 		for text_id in range(len(data)):
-			tmp_pred = pred[text_id]
 
 			#----- form data structure -----
 			# text
@@ -116,7 +117,9 @@ def generate_output(
 					if rev: u,v = v,u
 					got_ans.append( [int(u)-1,int(v)-1,rel_type] )
 
-			if models is not None:
+			if models is not None:			
+				tmp_pred = pred[text_id]
+
 				for u,v,_ in got_ans:
 					model_output.append(
 						{
@@ -177,11 +180,27 @@ if __name__ == "__main__":
 		data_watch = data_valid
 
 	#----- load model -----
-	if C.model_save:
+
+	if C.binary and C.pos_only: #两阶段生成
 		with open(C.model_save , "rb") as fil:
-			trained_models = pickle.load(fil)
+			binary_models = pickle.load(fil)
+		with open(C.model_save_2 , "rb") as fil:
+			psonly_models = pickle.load(fil)
+
+		trained_models = []
+		for i in range(len(binary_models)):
+			trained_models.append( TwoPhaseModel(
+				binary_models[i] , 
+				psonly_models[i] , 
+				relations.index(C.no_rel_name) , 
+				C.pos_thresh , 
+			) )
 	else:
-		trained_models = None
+		if C.model_save:
+			with open(C.model_save , "rb") as fil:
+				trained_models = pickle.load(fil)
+		else:
+			trained_models = None
 
 	#----- test -----
 	if trained_models is not None:

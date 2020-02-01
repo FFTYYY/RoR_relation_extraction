@@ -63,8 +63,8 @@ def before_parse_t2g(par):
 	#validattion and generation settings
 	par.add_argument("--gene_no_rel" 	, action = "store_true" , default = False) # 评测时输出no_rel
 	par.add_argument("--gene_in_data" 	, action = "store_true" , default = False) # 评测时只对测试集中出现的实体对生成
-	par.add_argument("--valid_metric" 	, type = str , default = "micro*macro")    # 用来选择最优模型的指标。因为 macro f1 常常不是很靠谱...
-
+	par.add_argument("--valid_metric" 	, type = str   , default = "micro*macro")  # 用来选择最优模型的指标。因为 macro f1 常常不是很靠谱...
+	par.add_argument("--pos_thresh" 	, type = float , default = 0.3) # 在两阶段生成中，正负例的阈值（以大于这个值的信心判断为正例，则认为是正例）
 
 	#others 
 	par.add_argument("--gpus" 			, type = str , default = "0")
@@ -79,6 +79,8 @@ def before_parse_t2g(par):
 	par.add_argument("--model_save" 	, type = str , default = "") # 保存最终的（ensemble的）模型的文件名
 	par.add_argument("--gene_file" 		, type = str , default = "watch/gene") # 保存生成结果的文件
 	par.add_argument("--watch_type" 	, type = str , default = "test") # 保存生成结果的文件
+	par.add_argument("--model_save_2" 	, type = str , default = "") # 在两阶段生成中保存pos_only模型的文件
+
 
 	#---------------------------------------------------------------------------------------------------
 

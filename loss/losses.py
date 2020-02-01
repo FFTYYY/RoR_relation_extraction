@@ -74,6 +74,9 @@ def loss_3(pred , anss , ents , no_rel , class_weight = [1,0.5,0.5,1,5,0.5,0.05]
 	import numpy as np
 	bs , ne , _ , d = pred.size()
 
+	if no_rel < 0:
+		no_rel = -100 #ignore index
+
 	num = 0
 	rel_map2 = np.zeros((bs, ne, ne))+no_rel
 	_ = [[rel_map2.itemset((i,u,v),t) for u,v,t in b] for i,b in enumerate(anss)]

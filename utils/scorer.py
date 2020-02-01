@@ -2,7 +2,7 @@ import numpy as np
 
 __all__ = ['get_f1']
 
-def get_f1(gold_file, pred_file, is_file_content=False, precision=4 , no_rel_name = None):
+def get_f1(gold_file, pred_file, is_file_content=False, precision=4 , no_rel_name = None , logger = None):
     from sklearn.metrics import f1_score , precision_score , recall_score
 
     rel_str2id = _get_rels([gold_file, pred_file], is_file_content , no_rel_name = no_rel_name)
@@ -27,7 +27,9 @@ def get_f1(gold_file, pred_file, is_file_content=False, precision=4 , no_rel_nam
 
     preci = precision_score(gold, pred, average='macro', labels=pos_labels, zero_division=0)
     recal =    recall_score(gold, pred, average='macro', labels=pos_labels, zero_division=0)
-    print ("precision / recall = %.4f , %.4f" % (float(preci) , float(recal)))
+
+    if logger is not None:
+        logger.log ("precision / recall = %.4f , %.4f" % (float(preci) , float(recal)))
     if (preci + recal) == 0:
         f1_macro = 0
     else:

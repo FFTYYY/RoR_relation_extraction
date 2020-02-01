@@ -27,10 +27,12 @@ def initialize(C , logger , relations , rel_weights):
 	
 	n_rel_typs = len(relations)
 
-	no_rel = 0
-	no_rel = relations.index(C.no_rel_name)
-
-	rel_weights[no_rel] = C.no_rel_weight
+	if C.pos_only:
+		no_rel = -1
+	else:
+		no_rel = relations.index(C.no_rel_name)
+		rel_weights[no_rel] = C.no_rel_weight
+	
 	logger.log("relations : {0}".format(relations))
 	logger.log("rel_weights : {0}".format(rel_weights))
 

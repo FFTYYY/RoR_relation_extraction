@@ -202,7 +202,8 @@ def data_process(
 
 	#----- special process ----
 
-	if C.binary:
+	# 如果 binary 和 pos_only 都开启，表示在进行测试，则不进行任何处理
+	if C.binary and not C.pos_only:
 		no_rel_idx = relations.index(C.no_rel_name)
 		for data in [train_data , test_data , valid_data]:
 			for x in data:
@@ -211,7 +212,7 @@ def data_process(
 		relations = ["NEGATIVE" , "POSITIVE"] 
 		rel_weights = [1,1]
 		C.no_rel_name = "NEGATIVE"
-	if C.pos_only:
+	if C.pos_only and not C.binary:
 		no_rel_idx = relations.index(C.no_rel_name)
 
 		#弹出所有标注的负例
