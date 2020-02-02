@@ -225,7 +225,20 @@ def data_process(
 				to_rem.reverse() # 倒过来弹出，防止影响顺序
 				for i in to_rem:
 					x.ans.pop(i)
-					
+
+		#弹出所有全负例的数据
+		for data in [train_data , test_data , valid_data]:
+			to_rem = []
+			for i , x in enumerate(data):
+				flag = False
+				for r in x.ans:
+					if r.type != no_rel_idx:
+						flag = True
+				if not flag: # all no_rel
+					to_rem.append(i)
+			to_rem.reverse() # 倒过来弹出，防止影响顺序
+			for i in to_rem:
+				data.pop(i)					
 
 		relations.pop(no_rel_idx)
 		rel_weights.pop(no_rel_idx)
