@@ -32,11 +32,12 @@ def before_parse_t2g(par):
 	#model selection
 	par.add_argument("--gnn"      	  , action = "store_true" , default = False)
 	par.add_argument("--matrix_trans" , action = "store_true" , default = False)
+	par.add_argument("--matrix_nlayer", type = int , default = 4)
 
 	#model structure 
 
 	par.add_argument("--dropout"      , type = float , default = 0.0)
-	par.add_argument("--loss" 		, type = str , default = "loss_3")
+	par.add_argument("--loss" 		  , type = str , default = "loss_3")
 
 	#training arguments
 	par.add_argument("--t2g_batch_size" , type = int , default = 8)

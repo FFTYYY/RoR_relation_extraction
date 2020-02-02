@@ -6,12 +6,13 @@ import pdb
 import math
 from .loss_func import *
 from .graph_encoder import Encoder
+from .matrix_transformer import Encoder as MatTransformer
 
 class Model(nn.Module):
 	def __init__(self , 
 			bert_type = "bert-base-uncased" , n_rel_typs = 7 , dropout = 0.0 , 
-			device = tc.device(0) , 
-			gnn = False , matrix_trans = False , 
+			device = tc.device(0) ,
+			gnn = False , matrix_trans = False , matrix_nlayer = 4 , 
 		):
 		super().__init__()
 
@@ -21,6 +22,7 @@ class Model(nn.Module):
 		self.d_model = 768
 		self.n_rel_typs = n_rel_typs
 		self.dropout = dropout
+		self.device = device
 
 		self.bert = BertModel.from_pretrained(bert_type).to(device)
 		self.bertdrop = nn.Dropout(self.dropout)
@@ -42,6 +44,9 @@ class Model(nn.Module):
 			self.ln1 = nn.Linear(2 * self.d_model , self.d_model)
 		else:
 			self.ln1 = nn.Linear(self.d_model , self.d_model)
+
+		if self.matrix_trans:
+			self.matt = MatTransformer(h = 8 , d_model = self.d_model , hidden_size = 4096 , num_layers = 4 , device = device)
 
 		self.wo = nn.Linear(self.d_model , n_rel_typs)
 
@@ -68,13 +73,15 @@ class Model(nn.Module):
 		#nn.init.normal_(self.pos_embedding.weight , 0 , 0.01)
 		#nn.init.normal_(self.bert.embeddings.token_type_embeddings.weight , 0 , 0.01)
 
-
 	def forward(self , sents , ents):
 
+		#----- head -----
 		bs , n = sents.size()
 		ne = max([len(x) for x in ents])
 		d = self.d_model
 		s = sents
+
+		#----- bert encoding -----
 
 		ent_index = s.new_zeros(s.size())
 		for _b in range(len(ents)):
@@ -96,46 +103,56 @@ class Model(nn.Module):
 		#bert_encoded = bert_encoded + self.bert.embeddings.position_embeddings(posi_index)
 		bert_encoded = self.bertdrop(bert_encoded)
 
-		ent_mask = sent_mask.new_zeros( bs , ne ).float()
 		ent_encode = bert_encoded.new_zeros( bs , ne , d )
 		for _b in range(bs):
 			for i , (u , v) in enumerate(ents[_b]):
 				ent_encode[_b , i] = bert_encoded[_b , u : v , :].mean(dim = 0)
-				ent_mask[_b , i] = 1
 
+		ent_mask , rel_mask = self.get_mask(ents , bs , ne)
+
+		#----- gnn encoding -----
 		if self.gnn:
 			ee = self.wi(ent_encode)
 			rel_enco = ee.view(bs,ne,1,d) + ee.view(bs,1,ne,d) #(bs , n , n , d)
 			rel_enco = F.relu(rel_enco)
 			# rel_enco[i,:,:,j] 是对称阵，为了让同一个节点收发的信息相同
-			rel_enco = self.graph_encode(ent_encode , rel_enco , ents)
+			rel_enco = self.graph_encode(ent_encode , rel_enco , ent_mask , rel_mask)
 
+		#----- naive encoding -----
 		u = self.wu(ent_encode)
 		v = self.wv(ent_encode)
 		alpha = u.view(bs,ne,1,d) + v.view(bs,1,ne,d) #(bs , n , n , d)
 		alpha = F.relu(alpha)
 
+		#----- get final encode ----- 
 		if self.gnn:
 			rel_enco = tc.cat([rel_enco , alpha] , dim = -1)
 			rel_enco = F.relu(self.ln1(rel_enco))
 		else:
 			rel_enco = F.relu(self.ln1(alpha))
 
+		#----- matrix process -----
+		if self.matrix_trans:
+			rel_enco = self.matt(rel_enco , rel_mask)
+
+		#----- ready to output -----
 		rel_enco = self.wo(rel_enco)
 
 		#alpha = alpha * ent_mask.view(bs,ne,1,1) * ent_mask.view(bs,1,ne,1)
 
 		return rel_enco
 
-	def graph_encode(self , ent_encode , rel_encode , ents):
-
-		bs , ne , d = ent_encode.size()
-
-		ent_mask = tc.zeros(bs , ne , device = ent_encode.device)
-		rel_mask = tc.zeros(bs , ne , ne , device = ent_encode.device)
+	def get_mask(self , ents , bs , ne):
+		ent_mask = tc.zeros(bs , ne , device = 0)
+		rel_mask = tc.zeros(bs , ne , ne , device = 0)
 		for _b in range(bs):
 			ent_mask[_b , :len(ents[_b])] = 1
 			rel_mask[_b , :len(ents[_b]) , :len(ents[_b])] = 1
+		return ent_mask , rel_mask
+
+	def graph_encode(self , ent_encode , rel_encode , ent_mask , rel_mask):
+
+		bs , ne , d = ent_encode.size()
 
 		ent_encode = ent_encode + self.ent_emb[0].view(1,1,d)
 		rel_encode = rel_encode + self.ent_emb[1].view(1,1,1,d)

@@ -74,7 +74,7 @@ def main():
 		loss_func , generator , 
 		mode = "test" , epoch_id = C.epoch_numb , run_name = 'final', 
 	)
-	fitlog.add_hyper("r%.4f / v%.4f" % (macro_f1 , best_valid) , name = "result")
+	fitlog.add_hyper("t%.4f v%.4f" % (macro_f1 , best_valid) , name = "result")
 
 	#----- save ensembled model -----
 	if C.model_save:
