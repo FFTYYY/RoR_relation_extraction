@@ -18,6 +18,9 @@ class TwoPhaseModel:
 			pred_binary = self.binary_model(*pargs , **kwargs)
 			pred_psonly = self.pos_only_model(*pargs , **kwargs)
 
+			pred_binary = tc.softmax(pred_binary , dim = -1)
+			pred_psonly = tc.softmax(pred_psonly , dim = -1)
+
 		bs , ne , ne , n_pos = pred_psonly.size()
 		assert tuple(pred_binary.size()) == (bs , ne , ne , 2)
 
