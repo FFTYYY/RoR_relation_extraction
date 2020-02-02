@@ -3,20 +3,20 @@ sh prep_data_and_env.sh
 
 #----- semeval 2018 -----
 #subtask 2
-CUDA_VISIBLE_DEVICES=0 python train.py --model=graph_trans --ensemble=5
+CUDA_VISIBLE_DEVICES=0 python train.py --gnn --ensemble=5
 
 # subtask2 , use test as valid
-CUDA_VISIBLE_DEVICES=0 python main.py --model=graph_trans --ensemble=5 \
+CUDA_VISIBLE_DEVICES=6 python main.py --gnn --ensemble=5 \
 	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
 	--valid_rels=./data/semeval_2018_task7/keys.test.2.txt \
 	--no_valid --warmup_prop=0.1127 --scheduler=cosine
 
-CUDA_VISIBLE_DEVICES=3 python main.py --model=graph_trans --ensemble=5 \
+CUDA_VISIBLE_DEVICES=3 python main.py --gnn --ensemble=5 \
 	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
 	--valid_rels=./data/semeval_2018_task7/keys.test.1.1.txt
 
 #train subtask1.1:
-CUDA_VISIBLE_DEVICES=0 python main.py --model=graph_trans --ensemble=5 --gene_in_data \
+CUDA_VISIBLE_DEVICES=0 python main.py --ensemble=5 --gene_in_data \
     --test_text=semeval_2018_task7/1.1.test.text.xml --test_rels=semeval_2018_task7/keys.test.1.1.txt --log_file=log
 
 #----- one-phase training on ace -----
@@ -24,7 +24,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py --model=graph_trans --ensemble=5 --gene_in
 #train
 
 # graph model
-CUDA_VISIBLE_DEVICES=2 python main.py --model=graph_trans --ensemble=1 --no_rel_name=NO_RELATION \
+CUDA_VISIBLE_DEVICES=2 python main.py --ensemble=1 --no_rel_name=NO_RELATION --gnn \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
 --test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
@@ -37,7 +37,7 @@ python watch.py \
 --dataset=ace_2005 --gene_no_rel --gene_in_data --no_rel_name=NO_RELATION \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
---test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_test.json \
+--test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/cts.json \
 --watch_type=test --model_save=model_r1.pkl --gene_file=watch/ace2005-cts
 
 
@@ -45,20 +45,20 @@ python watch.py \
 #----- two-phase training on ace -----
 
 # binary
-CUDA_VISIBLE_DEVICES=0 python main.py --model=graph_trans --ensemble=1 --no_rel_name=NO_RELATION \
+CUDA_VISIBLE_DEVICES=6 python main.py --gnn --ensemble=1 --no_rel_name=NO_RELATION \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
 --test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
 --dataset=ace_2005 --gene_in_data --valid_metric=macro --scheduler=cosine --binary --gene_no_rel \
---t2g_batch_size=32 --t2g_lr=1e-4 --no_rel_weight=1 --epoch_numb=30  --warmup_prop=0.02 --model_save=binary_r1.pkl
+--t2g_batch_size=32 --t2g_lr=1e-4 --no_rel_weight=1 --epoch_numb=30  --warmup_prop=0.1 --model_save=binary_r6.pkl
 
 # pos_only
-CUDA_VISIBLE_DEVICES=7 python main.py --model=graph_trans --ensemble=1 --no_rel_name=NO_RELATION \
+CUDA_VISIBLE_DEVICES=5 python main.py --gnn --ensemble=1 --no_rel_name=NO_RELATION \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
 --test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
 --dataset=ace_2005 --gene_in_data --valid_metric=macro --scheduler=cosine --pos_only \
---t2g_batch_size=32 --t2g_lr=1e-4 --epoch_numb=30  --warmup_prop=0.02 --model_save=psonly_r7.pkl
+--t2g_batch_size=32 --t2g_lr=1e-4 --epoch_numb=30  --warmup_prop=0.02 --model_save=psonly_r5.pkl
 
 # watch
 python watch.py \
@@ -67,5 +67,5 @@ python watch.py \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
 --test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/cts.json \
 --watch_type=test --gene_file=watch/ace2005-cts \
---binary --pos_only  --pos_thresh=0.1 --model_save=binary_r1.pkl --model_save_2=psonly_r2.pkl
+--binary --pos_only  --pos_thresh=0.1 --model_save=binary_r2.pkl --model_save_2=psonly_r6.pkl
 

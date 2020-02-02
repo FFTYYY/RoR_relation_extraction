@@ -58,7 +58,7 @@ def main():
 	#----- train & test -----
 	trained_models = []
 	for i in range(C.ensemble_size):
-		model = train(
+		model , best_valid = train(
 			C , logger , 
 			data_train , data_valid , 
 			loss_func , generator , n_rel_typs  , 
@@ -74,7 +74,7 @@ def main():
 		loss_func , generator , 
 		mode = "test" , epoch_id = C.epoch_numb , run_name = 'final', 
 	)
-	fitlog.add_hyper(macro_f1 , name = "result")
+	fitlog.add_hyper("r%.4f / v%.4f" % (macro_f1 , best_valid) , name = "result")
 
 	#----- save ensembled model -----
 	if C.model_save:

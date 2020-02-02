@@ -30,11 +30,8 @@ def before_parse_t2g(par):
 	par.add_argument("--dataset" 	, default = 'semeval_2018_task7')
 
 	#model selection
-	par.add_argument("--model" 		, type = str , default = "naive_bert" , 
-		choices = [
-			"naive_bert" , 
-			"graph_trans" , 
-	])
+	par.add_argument("--gnn"      	  , action = "store_true" , default = False)
+	par.add_argument("--matrix_trans" , action = "store_true" , default = False)
 
 	#model structure 
 

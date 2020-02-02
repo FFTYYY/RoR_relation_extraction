@@ -18,7 +18,11 @@ def before_train(C , logger , train_data , n_rel_typs):
 	batch_numb = (len(train_data) // C.batch_size) + int((len(train_data) % C.batch_size) != 0)
 	device = tc.device(C.device)
 
-	model = get_model(C.model)(n_rel_typs = n_rel_typs , dropout = C.dropout).to(device)
+	model = get_model()(
+		n_rel_typs = n_rel_typs , dropout = C.dropout , 
+		device = device , 
+		gnn = C.gnn , matrix_trans = C.matrix_trans
+	).to(device)
 
 	optimizer = tc.optim.Adam(params = model.parameters() , lr = C.lr)
 
@@ -119,7 +123,5 @@ def train(C , logger , train_data , valid_data , loss_func , generator , n_rel_t
 			"test" , epoch_id   , run_name , 
 		)
 
-
-
-	return model
+	return model , best_metric
 

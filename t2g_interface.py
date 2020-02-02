@@ -148,9 +148,9 @@ def get_initializations(C):
 
 	n_rel_typs , loss_func , generator = initialize(C , FakeLogger() , relations, rel_weights)
 
-	model = get_model(C.model)(n_rel_typs=n_rel_typs,dropout=C.dropout)
+	model = get_model()(n_rel_typs = n_rel_typs , dropout = C.dropout)
 
-	optimizer = tc.optim.Adam(params=model.parameters(),lr=C.t2g_lr)
+	optimizer = tc.optim.Adam(params = model.parameters( ) ,lr = C.t2g_lr)
 	batch_numb = (train_data_len // C.t2g_batch_size) + int(
 		(train_data_len % C.t2g_batch_size) != 0)
 	num_training_steps = C.epoch_numb * batch_numb

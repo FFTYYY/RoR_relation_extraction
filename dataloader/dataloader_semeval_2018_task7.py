@@ -194,7 +194,7 @@ def read_data(
 	valid_text = get_file_content(file_valid_text)
 	valid_rels = get_file_content(file_valid_rels)
 	return file_content2data(
-		logger , 
+		C , logger , 
 		train_text_1 , train_rels_1 , 
 		train_text_2 , train_rels_2 , 
 		test_text , test_rels , 
