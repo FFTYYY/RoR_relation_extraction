@@ -85,18 +85,16 @@ class Model(nn.Module):
 		posi_index = tc.arange(n).view(1,n).expand(bs , n).to(s.device)
 		sent_mask  = (sents != 0)
 
-		#with tc.no_grad():
-		if True:
-			outputs  = self.bert(
-				s , 
-				token_type_ids = ent_index , 
-				position_ids   = posi_index ,
-				attention_mask = sent_mask , 
-			) #(n , d)
+		outputs  = self.bert(
+			s , 
+			token_type_ids = ent_index , 
+			position_ids   = posi_index ,
+			attention_mask = sent_mask , 
+		) #(n , d)
 
-			bert_encoded = outputs[0] #(bs , n , d)
-			#bert_encoded = bert_encoded + self.bert.embeddings.position_embeddings(posi_index)
-			bert_encoded = self.bertdrop(bert_encoded)
+		bert_encoded = outputs[0] #(bs , n , d)
+		#bert_encoded = bert_encoded + self.bert.embeddings.position_embeddings(posi_index)
+		bert_encoded = self.bertdrop(bert_encoded)
 
 		ent_mask = sent_mask.new_zeros( bs , ne ).float()
 		ent_encode = bert_encoded.new_zeros( bs , ne , d )
@@ -105,12 +103,6 @@ class Model(nn.Module):
 				ent_encode[_b , i] = bert_encoded[_b , u : v , :].mean(dim = 0)
 				ent_mask[_b , i] = 1
 
-
-		u = self.wu(ent_encode)
-		v = self.wv(ent_encode)
-		alpha = u.view(bs,ne,1,d) + v.view(bs,1,ne,d) #(bs , n , n , d)
-		alpha = F.relu(alpha)
-
 		if self.gnn:
 			ee = self.wi(ent_encode)
 			rel_enco = ee.view(bs,ne,1,d) + ee.view(bs,1,ne,d) #(bs , n , n , d)
@@ -118,6 +110,12 @@ class Model(nn.Module):
 			# rel_enco[i,:,:,j] 是对称阵，为了让同一个节点收发的信息相同
 			rel_enco = self.graph_encode(ent_encode , rel_enco , ents)
 
+		u = self.wu(ent_encode)
+		v = self.wv(ent_encode)
+		alpha = u.view(bs,ne,1,d) + v.view(bs,1,ne,d) #(bs , n , n , d)
+		alpha = F.relu(alpha)
+
+		if self.gnn:
 			rel_enco = tc.cat([rel_enco , alpha] , dim = -1)
 			rel_enco = F.relu(self.ln1(rel_enco))
 		else:
@@ -125,7 +123,7 @@ class Model(nn.Module):
 
 		rel_enco = self.wo(rel_enco)
 
-		alpha = alpha * ent_mask.view(bs,ne,1,1) * ent_mask.view(bs,1,ne,1)
+		#alpha = alpha * ent_mask.view(bs,ne,1,1) * ent_mask.view(bs,1,ne,1)
 
 		return rel_enco
 
