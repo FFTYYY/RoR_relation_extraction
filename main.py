@@ -19,7 +19,9 @@ def load_data(C , logger):
 
 	logger.log("num of sents / entity pairs in train: %d / %d" % ( len(data_train) , sum([ len(x.ents) * (len(x.ents)-1) / 2 for x in data_train  ])  ))
 	logger.log("num of sents / instances in test    : %d / %d" % ( len(data_test ) , sum([ len(x.ans) for x in data_test  ])  ))
-	logger.log("num of sents / instances in valid   : %d / %d" % ( len(data_valid) , sum([ len(x.ans) for x in data_valid  ])  ))
+	logger.log("num of sents / instances in valid   : %d / %d" % ( len(data_valid) , sum([ len(x.ans) for x in data_valid ])  ))
+	logger.log("num of sents / entity pairs in test    : %d / %d" % ( len(data_test ) , sum([ len(x.ents) * (len(x.ents)-1) / 2 for x in data_test  ])    ))
+	logger.log("num of sents / entity pairs in valid   : %d / %d" % ( len(data_valid) , sum([ len(x.ents) * (len(x.ents)-1) / 2 for x in data_valid  ])    ))
 
 	return data_train , data_test , data_valid , relations, rel_weights
 
@@ -64,6 +66,10 @@ def main():
 			loss_func , generator , n_rel_typs  , 
 			run_name = str(i) , test_data = data_test , 
 		)
+
+		if hasattr(model , "module"): #dataparallel
+			model = model.module 
+
 		model = model.cpu()
 		trained_models.append(model)
 

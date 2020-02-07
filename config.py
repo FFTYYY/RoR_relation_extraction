@@ -65,7 +65,6 @@ def before_parse_t2g(par):
 	par.add_argument("--pos_thresh" 	, type = float , default = 0.3) # 在两阶段生成中，正负例的阈值（以大于这个值的信心判断为正例，则认为是正例）
 
 	#others 
-	par.add_argument("--gpus" 			, type = str , default = "0")
 	par.add_argument("--t2g_seed" 		, type = int , default = 2333)
 	par.add_argument("--log_file" 		, type = str , default = "log.txt")
 	par.add_argument("--no_log" 		, action = "store_true" , default = False)
@@ -115,8 +114,7 @@ def after_parse_t2g(C , need_logger = False):
 	logger.log (pformat(C.__dict__))
 	logger.log ("------------------------------------------------------")
 
-	#fitlog不支持list，所以把字符串作为参数，之后再转成list
-	C.gpus = [int(x) for x in C.gpus.strip().split(",")] 
+	C.gpus = list(range(tc.cuda.device_count()))
 
 	#----- initialize -----
 

@@ -20,9 +20,11 @@ def before_train(C , logger , train_data , n_rel_typs):
 
 	model = get_model()(
 		n_rel_typs = n_rel_typs , dropout = C.dropout , 
-		device = device , 
+		device = C.gpus[0] , 
 		gnn = C.gnn , matrix_trans = C.matrix_trans , matrix_nlayer = C.matrix_nlayer , 
-	).to(device)
+	).to(C.gpus[0])
+
+	model = tc.nn.DataParallel(model , C.gpus)
 
 	optimizer = tc.optim.Adam(params = model.parameters() , lr = C.lr)
 
@@ -42,7 +44,7 @@ def update_batch(C , logger ,
 		model , optimizer , scheduler , loss_func ,  
 		sents , ents , anss , data_ent , 
 	):
-	pred = model(sents , ents)
+	pred = model(sents , ents , devices = C.gpus)
 	loss = loss_func(pred , anss , ents)
 
 	#----- backward -----

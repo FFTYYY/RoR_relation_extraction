@@ -73,18 +73,25 @@ class Model(nn.Module):
 		#nn.init.normal_(self.pos_embedding.weight , 0 , 0.01)
 		#nn.init.normal_(self.bert.embeddings.token_type_embeddings.weight , 0 , 0.01)
 
-	def forward(self , sents , ents):
+	def forward(self , sents , ents , devices = []):
 
 		#----- head -----
 		bs , n = sents.size()
 		ne = max([len(x) for x in ents])
 		d = self.d_model
 		s = sents
+		run_device = s.device.index
+
+		if devices:
+			device_number = devices.index(run_device)
+		else:
+			device_number = int(run_device)
+		ents = ents[device_number * bs : (device_number + 1) * bs]
 
 		#----- bert encoding -----
 
 		ent_index = s.new_zeros(s.size())
-		for _b in range(len(ents)):
+		for _b in range(bs):
 			for u,v in ents[_b]:
 				ent_index[_b , u:v] = 1
 
@@ -108,7 +115,7 @@ class Model(nn.Module):
 			for i , (u , v) in enumerate(ents[_b]):
 				ent_encode[_b , i] = bert_encoded[_b , u : v , :].mean(dim = 0)
 
-		ent_mask , rel_mask = self.get_mask(ents , bs , ne)
+		ent_mask , rel_mask = self.get_mask(ents , bs , ne , run_device)
 
 		#----- gnn encoding -----
 		if self.gnn:
@@ -142,9 +149,9 @@ class Model(nn.Module):
 
 		return rel_enco
 
-	def get_mask(self , ents , bs , ne):
-		ent_mask = tc.zeros(bs , ne , device = 0)
-		rel_mask = tc.zeros(bs , ne , ne , device = 0)
+	def get_mask(self , ents , bs , ne , run_device):
+		ent_mask = tc.zeros(bs , ne , device = run_device)
+		rel_mask = tc.zeros(bs , ne , ne , device = run_device)
 		for _b in range(bs):
 			ent_mask[_b , :len(ents[_b])] = 1
 			rel_mask[_b , :len(ents[_b]) , :len(ents[_b])] = 1
