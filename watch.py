@@ -20,7 +20,7 @@ import re
 from YTools.universe.beautiful_str import beautiful_str
 import json
 from config import get_config
-from utils.two_phase import TwoPhaseModel
+from utils.composed_model import TwoPhaseModel , EnsembleModel
 
 from main import load_data , initialize
 
@@ -166,7 +166,8 @@ def generate_output(
 
 if __name__ == "__main__":
 	C , logger = get_config()
-	fitlog.debug()
+	#fitlog.debug()
+	C.info += "-watch"
 	
 	#----- prepare data and some global variables -----
 	data_train , data_test , data_valid , relations, rel_weights = load_data(C , logger)
@@ -186,7 +187,8 @@ if __name__ == "__main__":
 			binary_models = pickle.load(fil)
 		with open(C.model_save_2 , "rb") as fil:
 			psonly_models = pickle.load(fil)
-
+		
+		'''
 		trained_models = []
 		for i in range(len(binary_models)):
 			trained_models.append( TwoPhaseModel(
@@ -195,6 +197,22 @@ if __name__ == "__main__":
 				relations.index(C.no_rel_name) , 
 				C.pos_thresh , 
 			) )
+
+		'''
+
+		ens_binary_model = EnsembleModel(binary_models)
+		ens_psonly_model = EnsembleModel(psonly_models)
+
+		trained_models = [
+			TwoPhaseModel(
+				ens_binary_model , 
+				ens_psonly_model , 
+				relations.index(C.no_rel_name) , 
+				C.pos_thresh , 
+			)
+		]
+
+
 	else:
 		if C.model_save:
 			with open(C.model_save , "rb") as fil:

@@ -1,5 +1,55 @@
 import torch as tc
 
+class EnsembleModel:
+	'''
+		generate only. do not train this.
+	'''
+
+	def __init__(self , models , device = 0):
+		self.models = models
+		self.device = device
+
+	def forward(self , *pargs , **kwargs):
+		models = self.models
+		device = self.device
+
+		with tc.no_grad():
+			preds = [0 for _ in range(len(models))]
+			for i , model in enumerate(models):
+
+				old_device = next(model.parameters()).device
+				model = model.to(device)
+				preds[i] = model(*pargs , **kwargs)
+				model = model.to(old_device) #如果他本来在cpu上，生成完之后还是把他放回cpu
+		pred = 0
+		for x in preds:
+			pred = pred + tc.softmax(x , dim = -1)
+		pred /= len(models)
+
+		return pred
+
+	def __call__(self , *pargs , **kwargs):
+		return self.forward(*pargs , **kwargs)
+
+	@property
+	def parameters(self): #for device deciding
+		return self.models[0].parameters
+
+	def to(self , *pargs , **kwargs):
+		return self
+
+
+	def eval(self):
+		for i in range(len(self.models)):
+			self.models[i] = self.models[i].eval()
+		return self
+	def train(self):
+		for i in range(len(self.models)):
+			self.models[i] = self.models[i].train()
+		return self
+
+
+
 class TwoPhaseModel:
 	'''
 		generate only. do not train this.
