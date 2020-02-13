@@ -140,7 +140,11 @@ class Model(nn.Module):
 
 		#----- matrix process -----
 		if self.matrix_trans:
-			rel_enco = self.matt(rel_enco , rel_mask)
+			rel_enco_m = self.matt(alpha , rel_mask)
+			if self.gnn:
+				rel_enco = rel_enco + rel_enco_m
+			else:
+				rel_enco = rel_enco_m
 
 		#----- ready to output -----
 		rel_enco = self.wo(rel_enco)
