@@ -8,7 +8,7 @@ import json
 
 #fitlog.commit(__file__)
 
-def parse_a_file(logger , file_text , data_name = "test"):
+def parse_a_file(C , logger , file_text , data_name = "test"):
 
 	datas = {}
 
@@ -83,8 +83,9 @@ def parse_a_file(logger , file_text , data_name = "test"):
 				e1_real_name , e2_real_name = e2_real_name , e1_real_name
 			datas[text].ans.append(Relation(e1_real_name , e2_real_name , type = rel_type))
 
-			#if data_name == "train": # 在训练集中，也添加反向边
-			#	datas[text].ans.append(Relation(e2_real_name , e1_real_name , type = rel_type))
+			if C.double_ended:
+				if data_name == "train": # 在训练集中，也添加反向边
+					datas[text].ans.append(Relation(e2_real_name , e1_real_name , type = rel_type))
 
 		else:
 			assert False
@@ -102,9 +103,9 @@ def _read_data(
 		dataset_type , rel_weight_smooth , rel_weight_norm ,
 	):
 
-	train_data , rel_list_1 = parse_a_file(logger , file_train_text , "train")
-	test_data  , rel_list_2 = parse_a_file(logger , file_test_text  , "test" )
-	valid_data , rel_list_3 = parse_a_file(logger , file_valid_text , "valid")
+	train_data , rel_list_1 = parse_a_file(C , logger , file_train_text , "train")
+	test_data  , rel_list_2 = parse_a_file(C , logger , file_test_text  , "test" )
+	valid_data , rel_list_3 = parse_a_file(C , logger , file_valid_text , "valid")
 
 	rel_list = rel_list_1 + rel_list_2 + rel_list_3
 

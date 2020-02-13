@@ -29,6 +29,8 @@ def before_parse_t2g(par):
 	par.add_argument("--test_script", type = str , default = "./data/semeval_2018_task7/semeval2018_task7_scorer-v1.2.pl")
 	par.add_argument("--dataset" 	, default = 'semeval_2018_task7')
 
+	par.add_argument("--double_ended" , action = "store_true" , default = False)
+
 	#model selection
 	par.add_argument("--gnn"      	  , action = "store_true" , default = False)
 	par.add_argument("--matrix_trans" , action = "store_true" , default = False)
