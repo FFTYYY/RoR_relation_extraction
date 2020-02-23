@@ -127,9 +127,13 @@ def get_rel_weights(rel_list , dataset_type , rel_weight_smooth = 0 , rel_weight
 			"NONE": 0 , "COMPARE": 1, "MODEL-FEATURE": 0.5, "PART_WHOLE": 0.5,
 			"RESULT": 1, "TOPIC": 5, "USAGE": 0.5,
 		}
+		#rel2wgh = {
+		#	"NONE": 1 , "COMPARE": 1, "MODEL-FEATURE": 1, "PART_WHOLE": 1,
+		#	"RESULT": 1, "TOPIC": 1, "USAGE": 1,
+		#}
 		relations = ["COMPARE", "MODEL-FEATURE", "PART_WHOLE", "RESULT",
 					 "TOPIC", "USAGE", "NONE"]
-		rel_weights = [rel2wgh[r] for r in relations]
+		rel_weights = [rel2wgh.get(r , 0.05) for r in relations]
 	elif dataset_type == "ace_2005":
 		rel2wgh = {
 			"PART-WHOLE": 1, "PHYS":1, "GEN-AFF":1, "ORG-AFF":1, "ART":1, "PER-SOC":1, "NO_RELATION":0,

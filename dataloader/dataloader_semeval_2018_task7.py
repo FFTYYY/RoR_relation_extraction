@@ -101,7 +101,7 @@ def parse_a_text_file(logger , cont , dirty = False):
 
 	return datas
 
-def parse_a_key_file(logger , datas , cont):
+def parse_a_key_file(logger , datas , cont , dtype = "test"):
 	relations = []
 
 	cont = cont.strip().split("\n")
@@ -134,6 +134,11 @@ def parse_a_key_file(logger , datas , cont):
 
 		datas[text_id].ans.append(Relation(ent_a , ent_b , rel))
 
+		if dtype == "train":
+			if rel == "COMPARE":
+				datas[text_id].ans.append(Relation(ent_b , ent_a , rel))
+
+
 		relations.append(rel)
 
 	return datas, relations
@@ -150,18 +155,18 @@ def file_content2data(
 
 	#----- read data files -----
 	train_data_1 				= parse_a_text_file(logger , train_text_1 , dirty = False)
-	train_data_1 , rel_list1 	= parse_a_key_file (logger , train_data_1 , train_rels_1)
+	train_data_1 , rel_list1 	= parse_a_key_file (logger , train_data_1 , train_rels_1 , dtype = "train")
 
 	train_data_2 				= parse_a_text_file(logger , train_text_2 , dirty = True)
-	train_data_2 , rel_list2 	= parse_a_key_file (logger , train_data_2 , train_rels_2)
+	train_data_2 , rel_list2 	= parse_a_key_file (logger , train_data_2 , train_rels_2 , dtype = "train")
 	train_data = train_data_1
 	train_data.update(train_data_2)
 
 	test_data 				= parse_a_text_file(logger , test_text)
-	test_data  , rel_list3 	= parse_a_key_file (logger , test_data , test_rels)
+	test_data  , rel_list3 	= parse_a_key_file (logger , test_data , test_rels , dtype = "test")
 
 	valid_data 				= parse_a_text_file(logger , valid_text)
-	valid_data , rel_list4 	= parse_a_key_file (logger , valid_data , valid_rels)
+	valid_data , rel_list4 	= parse_a_key_file (logger , valid_data , valid_rels , dtype = "test")
 
 	rel_list = rel_list1 + rel_list2 + rel_list3 + rel_list4
 
