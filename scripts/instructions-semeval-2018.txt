@@ -3,14 +3,16 @@
 CUDA_VISIBLE_DEVICES=0 python train.py --gnn --ensemble=5
 
 # subtask2 , use test as valid
-python main.py --gnn --ensemble=5 --epoch_numb=50 \
+CUDA_VISIBLE_DEVICES=1,2,3,4 python main.py --ensemble=5 --epoch_numb=50 --no_rel_name=NONE --gnn --matrix_trans \
 	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
 	--valid_rels=./data/semeval_2018_task7/keys.test.2.txt \
-	--no_valid --warmup_prop=0.1127 --scheduler=cosine --gpus=5,6,7,8 --t2g_batch_size=32 --t2g_lr=4e-4
-
-CUDA_VISIBLE_DEVICES=3 python main.py --gnn --ensemble=5 \
+	--no_valid --warmup_prop=0.1127 --scheduler=cosine --t2g_batch_size=8 --model_save=sem_model_r0.pkl
+ 
+# subtask2 , use valid
+CUDA_VISIBLE_DEVICES=1 python main.py --gnn --ensemble=5 --epoch_numb=50 --no_rel_name=NONE \
 	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
-	--valid_rels=./data/semeval_2018_task7/keys.test.1.1.txt
+	--valid_rels=./data/semeval_2018_task7/keys.test.2.txt \
+	--no_valid --warmup_prop=0.1127 --scheduler=cosine --t2g_batch_size=8 --model_save=sem_model_r2.pkl
 
 #train subtask1.1:
 CUDA_VISIBLE_DEVICES=0 python main.py --ensemble=5 --gene_in_data \
@@ -19,28 +21,29 @@ CUDA_VISIBLE_DEVICES=0 python main.py --ensemble=5 --gene_in_data \
 #----- two-phase training on semeval -----
 
 # binary
-CUDA_VISIBLE_DEVICES=6 python main.py --gnn --ensemble=1 --no_rel_name=NO_RELATION \
---train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
---valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
---test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
---dataset=ace_2005 --gene_in_data --valid_metric=macro --scheduler=cosine --binary --gene_no_rel \
---t2g_batch_size=32 --t2g_lr=1e-4 --no_rel_weight=1 --epoch_numb=30  --warmup_prop=0.1 --model_save=binary_r6.pkl
+CUDA_VISIBLE_DEVICES=3 python main.py  --ensemble=5 --epoch_numb=50 --no_rel_name=NONE --gnn \
+	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
+	--valid_rels=./data/semeval_2018_task7/keys.test.2.txt \
+	--scheduler=cosine --binary --gene_no_rel --no_valid --no_rel_weight=0.05 \
+	--warmup_prop=0.1 --scheduler=cosine --t2g_batch_size=8 --model_save=sem_binary_r3.pkl
 
 # pos_only
-CUDA_VISIBLE_DEVICES=5 python main.py --gnn --ensemble=1 --no_rel_name=NO_RELATION \
---train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
---valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
---test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
---dataset=ace_2005 --gene_in_data --valid_metric=macro --scheduler=cosine --pos_only \
---t2g_batch_size=32 --t2g_lr=1e-4 --epoch_numb=30  --warmup_prop=0.02 --model_save=psonly_r5.pkl
+CUDA_VISIBLE_DEVICES=5 python main.py  --ensemble=5 --epoch_numb=50 --no_rel_name=NONE \
+	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
+	--valid_rels=./data/semeval_2018_task7/keys.test.2.txt \
+	--scheduler=cosine --pos_only --gnen_in_data --no_valid \
+	--warmup_prop=0.02 --scheduler=cosine --t2g_batch_size=8 --model_save=sem_psonly_r5.pkl
+
 
 # watch
 python watch.py \
---dataset=ace_2005 --gene_no_rel --gene_in_data --no_rel_name=NO_RELATION \
---train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
---valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
---test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_test.json \
---watch_type=test --gene_file=watch/ace2005-cts \
---binary --pos_only  --pos_thresh=0.3 --model_save=binary_r2.pkl --model_save_2=psonly_r1.pkl
+--dataset=semeval_2018_task7 --gene_no_rel --no_rel_name=NONE \
+--watch_type=test --gene_file=watch/semeval-test \
+--binary --pos_only  --pos_thresh=0.6 --model_save=sem_binary_r5.pkl --model_save_2=sem_psonly_r7.pkl
 
-#----- two-phase training on ace with matrix transformer -----
+#---------------------
+CUDA_VISIBLE_DEVICES=1,2,3,4 python main.py --ensemble=5 --epoch_numb=30 --no_rel_name=NONE --matrix_trans --gnn \
+	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
+	--valid_rels=./data/semeval_2018_task7/keys.test.2.txt \
+	--loss=loss_2 --no_valid --warmup_prop=0.1 --scheduler=cosine --t2g_batch_size=8 \
+	--model_save=sem_model_re.pkl

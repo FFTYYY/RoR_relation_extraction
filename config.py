@@ -39,7 +39,7 @@ def before_parse_t2g(par):
 	#model structure 
 
 	par.add_argument("--dropout"      , type = float , default = 0.0)
-	par.add_argument("--loss" 		  , type = str , default = "loss_3")
+	par.add_argument("--loss" 		  , type = str , default = "loss_1")
 
 	#training arguments
 	par.add_argument("--t2g_batch_size" , type = int , default = 8)

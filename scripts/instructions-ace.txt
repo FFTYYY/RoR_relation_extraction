@@ -7,12 +7,12 @@ sh prep_data_and_env.sh
 #train
 
 # graph model
-CUDA_VISIBLE_DEVICES=2 python main.py --ensemble=1 --no_rel_name=NO_RELATION --gnn \
+CUDA_VISIBLE_DEVICES=4 python main.py --ensemble=1 --no_rel_name=NO_RELATION --gnn \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
---test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
+--test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_test.json \
 --dataset=ace_2005 --gene_in_data --valid_metric=macro --scheduler=cosine \
---t2g_batch_size=32 --t2g_lr=1e-4 --no_rel_weight=0.25 --epoch_numb=30  --warmup_prop=0.02 --model_save=model_r2.pkl
+--t2g_batch_size=32 --t2g_lr=1e-4 --no_rel_weight=0.25 --epoch_numb=30  --warmup_prop=0.02 --model_save=model_r4.pkl
 
 
 #watch
@@ -20,8 +20,8 @@ python watch.py \
 --dataset=ace_2005 --gene_no_rel --gene_in_data --no_rel_name=NO_RELATION \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
---test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
---watch_type=test --model_save=model_r2.pkl --gene_file=watch/ace2005-cts
+--test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
+--watch_type=test --model_save=model_r1.pkl --gene_file=watch/ace2005-cts
 
 
 #----- one phase training with only matrix transformer ------
@@ -48,12 +48,12 @@ CUDA_VISIBLE_DEVICES=1,2 python main.py --ensemble=1 --no_rel_name=NO_RELATION -
 #----- two-phase training on ace -----
 
 # binary
-CUDA_VISIBLE_DEVICES=6 python main.py --gnn --ensemble=1 --no_rel_name=NO_RELATION \
+CUDA_VISIBLE_DEVICES=6 python main.py --ensemble=1 --no_rel_name=NO_RELATION --gnn \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
 --test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
 --dataset=ace_2005 --gene_in_data --valid_metric=macro --scheduler=cosine --binary --gene_no_rel \
---t2g_batch_size=32 --t2g_lr=1e-4 --no_rel_weight=1 --epoch_numb=30  --warmup_prop=0.1 --model_save=binary_r6.pkl
+--t2g_batch_size=32 --t2g_lr=1e-4 --no_rel_weight=1 --epoch_numb=30 --warmup_prop=0.1 --model_save=binary_r6.pkl
 
 # pos_only
 CUDA_VISIBLE_DEVICES=5 python main.py --gnn --ensemble=1 --no_rel_name=NO_RELATION \
