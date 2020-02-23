@@ -49,10 +49,10 @@ def get_evaluate(C , logger , mode , generated , generator , test_data = None):
 
 	golden = write_keyfile(test_data , generator)
 
-	os.makedirs("watch/debug" , exist_ok = True)
-	with open("watch/debug/golden.txt" , "w") as fil:
+	os.makedirs("analyze_res/debug" , exist_ok = True)
+	with open("analyze_res/debug/golden.txt" , "w") as fil:
 		fil.write(golden)
-	with open("watch/debug/gene.txt" , "w") as fil:
+	with open("analyze_res/debug/gene.txt" , "w") as fil:
 		fil.write(generated)
 
 

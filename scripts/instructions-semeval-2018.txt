@@ -36,7 +36,7 @@ CUDA_VISIBLE_DEVICES=5 python main.py  --ensemble=5 --epoch_numb=50 --no_rel_nam
 
 
 # watch
-python watch.py \
+python -m analyze.watch \
 --dataset=semeval_2018_task7 --gene_no_rel --no_rel_name=NONE \
 --watch_type=test --gene_file=watch/semeval-test \
 --binary --pos_only  --pos_thresh=0.6 --model_save=sem_binary_r5.pkl --model_save_2=sem_psonly_r7.pkl

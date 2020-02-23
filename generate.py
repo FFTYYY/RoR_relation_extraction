@@ -16,8 +16,8 @@ def generate_from_pred(pred , data_ent , relations , no_rel , gene_no_rel = Fals
 		if t == no_rel:
 			if not gene_no_rel:
 				return
-		if i == j:
-			return #no self ring
+		#if i == j:
+		#	return #no self ring
 
 		#只输出有relation的边的类型
 		#if ans_rels is not None:

@@ -9,7 +9,7 @@ class EnsembleModel:
 		self.models = models
 		self.device = device
 
-	def forward(self , *pargs , **kwargs):
+	def forward(self , *pargs , output_preds = False , **kwargs):
 		models = self.models
 		device = self.device
 
@@ -21,6 +21,10 @@ class EnsembleModel:
 				model = model.to(device)
 				preds[i] = model(*pargs , **kwargs)
 				model = model.to(old_device) #如果他本来在cpu上，生成完之后还是把他放回cpu
+
+		if output_preds:
+			return preds
+
 		pred = 0
 		for x in preds:
 			pred = pred + tc.softmax(x , dim = -1)
