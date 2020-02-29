@@ -47,3 +47,8 @@ CUDA_VISIBLE_DEVICES=1,2,3,4 python main.py --ensemble=5 --epoch_numb=30 --no_re
 	--valid_rels=./data/semeval_2018_task7/keys.test.2.txt \
 	--loss=loss_2 --no_valid --warmup_prop=0.1 --scheduler=cosine --t2g_batch_size=8 \
 	--model_save=sem_model_re.pkl
+
+python -m analyze.compare \
+--dataset=semeval_2018_task7 --gene_no_rel --no_rel_name=NONE \
+--watch_type=test --gene_file=analyze_res/compare/semeval-test \
+--model_save=sem_model_r6.pkl --model_save_2=sem_model_re.pkl

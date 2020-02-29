@@ -1,7 +1,6 @@
 data/semeval_2018_task7
 data/ace*
 data/docred
-watch/*
 log.txt
 *.pyc
 sftp-config.json
@@ -9,4 +8,7 @@ tmp.txt
 log*
 note.txt
 note_semeval.txt
-analyze_res
+analyze_res/*/*.txt
+analyze_res/*/*.json
+analyze_res/*/*/*.json
+analyze_res/*/*/*.txt

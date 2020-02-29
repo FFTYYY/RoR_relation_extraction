@@ -191,7 +191,7 @@ if __name__ == "__main__":
 	#----- load model -----
 
 	if not C.model_save or not C.model_save_2:
-		assert "model information incomplete"
+		raise "model information incomplete"
 
 	with open(C.model_save , "rb") as fil:
 		models_1 = pickle.load(fil)

@@ -32,12 +32,13 @@ def before_train(C , logger , train_data , n_rel_typs):
 		"linear": get_linear_schedule_with_warmup ,
 		"cosine": get_cosine_schedule_with_warmup ,
 	}
+	
 	scheduler = scheduler_makers[C.scheduler](
 		optimizer = optimizer , 
 		num_warmup_steps = int(C.warmup_prop * batch_numb * C.epoch_numb), 
 		num_training_steps = batch_numb * C.epoch_numb , 
 	)
-
+	
 	return (batch_numb , device) , (model , optimizer , scheduler)
 
 def update_batch(C , logger , 
