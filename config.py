@@ -80,20 +80,12 @@ def before_parse_t2g(par):
 	par.add_argument("--watch_type" 	, type = str , default = "test") # 保存生成结果的文件
 	par.add_argument("--model_save_2" 	, type = str , default = "") # 在两阶段生成中保存pos_only模型的文件
 
-
 	#---------------------------------------------------------------------------------------------------
 
 
 	return par
 
 def after_parse_t2g(C , need_logger = False):
-
-	#----- do some check -----
-
-	for file in [C.train_text_1 , C.train_rels_1 , C.train_text_2 , C.train_rels_2 , C.test_text , C.test_rels ]:
-		if C.dataset not in file:
-			print('[Warn] Dataset and training files do not match.')
-			#import pdb;pdb.set_trace()
 
 	#----- make logger -----
 
@@ -103,6 +95,14 @@ def after_parse_t2g(C , need_logger = False):
 		logger.log = logger.nolog
 
 	C.tmp_file_name = random_tmp_name()
+	
+	#----- do some check -----
+
+	for file in [C.train_text_1 , C.train_rels_1 , C.train_text_2 , C.train_rels_2 , C.test_text , C.test_rels ]:
+		if C.dataset not in file:
+			logger.log('[Warn] Dataset and training files do not match.')
+			#import pdb;pdb.set_trace()
+
 
 	#----- other stuff -----
 

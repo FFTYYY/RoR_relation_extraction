@@ -1,0 +1,13 @@
+# glocal
+
+python -m analyze.gene \
+--dataset=ace_2005 --gene_no_rel --gene_in_data --no_rel_name=NO_RELATION \
+--train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
+--valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
+--test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
+--watch_type=test --model_save=model_r1.pkl --gene_file=analyze_res/compare-ace05/ace2005-bcdev-glocal
+
+python -m analyze.gene \
+--dataset=semeval_2018_task7 --gene_no_rel --no_rel_name=NONE \
+--watch_type=test --gene_file=analyze_res/compare-semeval18/semeval-test-glocal \
+--model_save=sem_model_r6.pkl

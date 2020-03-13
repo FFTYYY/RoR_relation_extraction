@@ -7,13 +7,13 @@ sh prep_data_and_env.sh
 #train
 
 # graph model
-CUDA_VISIBLE_DEVICES=0 python main.py --ensemble=1 --no_rel_name=NO_RELATION --gnn --matrix_trans \
+CUDA_VISIBLE_DEVICES=1 python main.py --ensemble=1 --no_rel_name=NO_RELATION --gnn --matrix_trans \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
 --test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_test.json \
 --dataset=ace_2005 --gene_in_data --valid_metric=macro --scheduler=cosine --no_valid \
 --loss=loss_1 --t2g_batch_size=8 --t2g_lr=5e-5 --no_rel_weight=0.25 --epoch_numb=30  --warmup_prop=0.02 \
---model_save=model_r0.pkl
+--model_save=model_r1.pkl
 
 
 #watch
@@ -22,7 +22,7 @@ python -m analyze.watch \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
 --test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
---watch_type=test --model_save=model_r3.pkl --gene_file=analyze_res/watch/ace2005-cts
+--watch_type=test --model_save=model_r0.pkl --gene_file=analyze_res/watch/ace2005-cts
 
 
 #compare
@@ -30,8 +30,8 @@ python -m analyze.compare \
 --dataset=ace_2005 --gene_no_rel --gene_in_data --no_rel_name=NO_RELATION \
 --train_text_1=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json \
 --valid_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
---test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/wl.json \
---watch_type=test --model_save=model_r3.pkl --model_save_2=model_r3.pkl --gene_file=analyze_res/compare/ace2005-wl
+--test_text=./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json \
+--watch_type=test --model_save=model_r4.pkl --model_save_2=model_r1.pkl --gene_file=analyze_res/compare/ace2005-bcdev
 
 #----- two-phase training on ace -----
 

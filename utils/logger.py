@@ -8,8 +8,9 @@ class Logger:
 		self.log_fil = open(fil_path , "w" , encoding = "utf-8")
 
 	def nolog(self , cont = ""):
-		print (cont)
-		fitlog.add_to_line(cont)
+		#print (cont)
+		#fitlog.add_to_line(cont)
+		pass
 
 	def log_print(self , cont = ""):
 		self.log_fil.write(cont + "\n")

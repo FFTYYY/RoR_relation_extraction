@@ -42,11 +42,11 @@ python -m analyze.watch \
 --binary --pos_only  --pos_thresh=0.6 --model_save=sem_binary_r5.pkl --model_save_2=sem_psonly_r7.pkl
 
 #---------------------
-CUDA_VISIBLE_DEVICES=1,2,3,4 python main.py --ensemble=5 --epoch_numb=30 --no_rel_name=NONE --matrix_trans --gnn \
+CUDA_VISIBLE_DEVICES=5 python main.py --ensemble=5 --epoch_numb=30 --no_rel_name=NONE --gnn \
 	--valid_text=./data/semeval_2018_task7/2.test.text.xml \
 	--valid_rels=./data/semeval_2018_task7/keys.test.2.txt \
 	--loss=loss_2 --no_valid --warmup_prop=0.1 --scheduler=cosine --t2g_batch_size=8 \
-	--model_save=sem_model_re.pkl
+	--model_save=sem_model_r3.pkl --info="gnn only"
 
 python -m analyze.compare \
 --dataset=semeval_2018_task7 --gene_no_rel --no_rel_name=NONE \
