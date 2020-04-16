@@ -8,8 +8,5 @@ tmp.txt
 log*
 note.txt
 note_semeval.txt
-analyze_res/*/*.txt
-analyze_res/*/*.json
-analyze_res/*/*/*.json
-analyze_res/*/*/*.txt
-bake/*
+outputs/analyze_res/*
+backup/*
