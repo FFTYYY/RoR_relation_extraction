@@ -6,8 +6,6 @@ import fitlog
 from .base import *
 import json
 
-#fitlog.commit(__file__)
-
 def parse_a_file(C , logger , file_text , data_name = "test"):
 
 	datas = {}
@@ -82,11 +80,6 @@ def parse_a_file(C , logger , file_text , data_name = "test"):
 			if e1_idx >= e2_idx: #确保小到大
 				e1_real_name , e2_real_name = e2_real_name , e1_real_name
 			datas[text].ans.append(Relation(e1_real_name , e2_real_name , type = rel_type))
-
-			if C.double_ended:
-				if data_name == "train": # 在训练集中，也添加反向边
-					datas[text].ans.append(Relation(e2_real_name , e1_real_name , type = rel_type))
-
 		else:
 			assert False
 

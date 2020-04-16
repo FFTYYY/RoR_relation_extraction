@@ -27,8 +27,6 @@ def before_parse_t2g(par):
 	par.add_argument("--test_script", type = str , default = "./data/semeval_2018_task7/semeval2018_task7_scorer-v1.2.pl")
 	par.add_argument("--dataset" 	, default = 'semeval_2018_task7')
 
-	par.add_argument("--double_ended" , action = "store_true" , default = False)
-
 	#model selection
 	par.add_argument("--gnn"      	  , action = "store_true" , default = False)
 	par.add_argument("--matrix_trans" , action = "store_true" , default = False)
@@ -43,7 +41,6 @@ def before_parse_t2g(par):
 	par.add_argument("--t2g_batch_size" , type = int , default = 8)
 	par.add_argument("--epoch_numb" 	, type = int , default = 50)
 	par.add_argument("--t2g_lr" 		, type = float , default = 1e-4)
-	par.add_argument("--fine_tune" 		, action = "store_true" , default = False)
 	par.add_argument("--warmup_prop"	, type = float , default = 0.1)
 	par.add_argument("--scheduler" 		, type = str , default = "cosine") #linear or cosine
 

@@ -3,9 +3,8 @@ import numpy as np
 from collections import Counter
 from transformers import BertModel , BertTokenizer
 import random
+from .data_config import data_config
 import pdb
-#relations = ["COMPARE" , "MODEL-FEATURE" , "PART_WHOLE" , "RESULT" , "TOPIC" , "USAGE" , ]
-
 
 class Entity:
 	def __init__(self , start_pos , end_pos , name):
@@ -122,25 +121,11 @@ def get_rel_weights(rel_list , dataset_type , rel_weight_smooth = 0 , rel_weight
 	rel_count = Counter(rel_list)
 	relations = list(rel_count.keys())
 
-	if dataset_type == "semeval_2018_task7":
-		rel2wgh = {
-			"NONE": 0 , "COMPARE": 1, "MODEL-FEATURE": 0.5, "PART_WHOLE": 0.5,
-			"RESULT": 1, "TOPIC": 5, "USAGE": 0.5,
-		}
-		#rel2wgh = {
-		#	"NONE": 1 , "COMPARE": 1, "MODEL-FEATURE": 1, "PART_WHOLE": 1,
-		#	"RESULT": 1, "TOPIC": 1, "USAGE": 1,
-		#}
-		relations = ["COMPARE", "MODEL-FEATURE", "PART_WHOLE", "RESULT",
-					 "TOPIC", "USAGE", "NONE"]
+	if dataset_type in data_config:
+		conf 		= data_config[dataset_type]
+		rel2wgh 	= conf["rel2wgh"]
+		relations 	= conf["relations"]
 		rel_weights = [rel2wgh.get(r , 0.05) for r in relations]
-	elif dataset_type == "ace_2005":
-		rel2wgh = {
-			"PART-WHOLE": 1, "PHYS":1, "GEN-AFF":1, "ORG-AFF":1, "ART":1, "PER-SOC":1, "NO_RELATION":0,
-		}
-		relations = ["PART-WHOLE", "PHYS", "GEN-AFF", "ORG-AFF", "ART", "PER-SOC", "NO_RELATION"]
-
-		rel_weights = [float(rel2wgh[r]) for r in relations]
 	else:
 		rel_top_freq = rel_count.most_common(1)[0][-1]
 		rel_weights = [(rel_top_freq + rel_weight_smooth) / (cnt + rel_weight_smooth) for cnt in rel_count.values()]

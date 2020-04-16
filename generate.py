@@ -5,8 +5,10 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import math
 import pdb
+from dataloader.data_config import data_config
 
-def generate_from_pred(pred , data_ent , relations , no_rel , gene_no_rel = False , ans_rels = None):
+def generate_from_pred(pred , data_ent , relations , no_rel , sym_rels = [] , gene_no_rel = False , 
+			ans_rels = None):
 
 	bs , ne , _ , d = pred.size()
 	gene_content = ["" for _ in range(bs)]
@@ -16,13 +18,6 @@ def generate_from_pred(pred , data_ent , relations , no_rel , gene_no_rel = Fals
 		if t == no_rel:
 			if not gene_no_rel:
 				return
-		#if i == j:
-		#	return #no self ring
-
-		#只输出有relation的边的类型
-		#if ans_rels is not None:
-		#	if (i,j) not in ans_rels[_b]:
-		#		return
 
 		reverse = False
 		if i > j:
@@ -40,17 +35,14 @@ def generate_from_pred(pred , data_ent , relations , no_rel , gene_no_rel = Fals
 
 	for _b in range(bs):
 
-		#----- small tricks to improve f1 value -----
+		#----- for symmetric relations -----
 		for i in range(len(data_ent[_b])):
 			for j in range(len(data_ent[_b])):
-				#pred[_b,i,j,topic_idx] *= 10 #more topic
 
-				sym_relations = ["COMPARE" , "PER-SOC" , "PHYS"]
-				for x in sym_relations:
+				for x in sym_rels:
 					if x in relations:
 						if i > j:
-							pred[_b,i,j,relations.index(x) ] = 0 #no reverse compare
-				#TODO
+							pred[_b,i,j,relations.index(x) ] = 0 # no reversed relation
 		#---------------------------------------------
 
 
@@ -73,8 +65,8 @@ def generate_from_pred(pred , data_ent , relations , no_rel , gene_no_rel = Fals
 	return gene_content
 
 
-def generate(preds , data_ent , relations , no_rel , gene_no_rel = False , ans_rels = None , 
-		give_me_pred = False , split_generate = False):
+def generate(preds , data_ent , relations , no_rel , sym_rels = [] , gene_no_rel = False , 
+			ans_rels = None , give_me_pred = False , split_generate = False):
 		
 	#----- average predicted scores -----
 	pred = 0
@@ -84,7 +76,8 @@ def generate(preds , data_ent , relations , no_rel , gene_no_rel = False , ans_r
 	pred /= len(preds)
 
 	#----- generate from it -----
-	gene_cont = generate_from_pred(pred , data_ent , relations , no_rel , gene_no_rel , ans_rels = ans_rels)
+	gene_cont = generate_from_pred(pred , data_ent , relations , no_rel , sym_rels , 
+			gene_no_rel , ans_rels = ans_rels)
 
 	if not split_generate:
 		gene_cont = "".join(gene_cont)
@@ -100,9 +93,15 @@ class Generator:
 		self.relations = relations
 		self.no_rel = no_rel
 
+		if C.dataset in data_config:
+			self.sym_rels = data_config[C.dataset]["sym_relations"]
+		else:
+			self.sym_rels = []
+
+
 	def get_no_rel_name(self): #for scorer
 		return self.relations[self.no_rel]
 
 	def __call__(self , preds , data_ent , ans_rels = None, give_me_pred = False, split_generate = False):
-		return generate(preds , data_ent , self.relations , self.no_rel , self.gene_no_rel , 
-				ans_rels , give_me_pred , split_generate)
+		return generate(preds , data_ent , self.relations , self.no_rel , self.sym_rels , 
+			self.gene_no_rel , ans_rels , give_me_pred , split_generate)
