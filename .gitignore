@@ -12,3 +12,4 @@ analyze_res/*/*.txt
 analyze_res/*/*.json
 analyze_res/*/*/*.json
 analyze_res/*/*/*.txt
+bake/*

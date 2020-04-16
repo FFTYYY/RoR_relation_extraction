@@ -54,7 +54,7 @@ def before_parse_t2g(par):
 	par.add_argument("--no_rel_weight" 		, type = float , default = 0.05)
 	par.add_argument("--rel_weight_smooth" 	, type = float , default = 0)
 	par.add_argument("--rel_weight_norm" 	, action = 'store_true')
-	par.add_argument("--no_rel_name" 		, type = str , default = "NONE") # 只训练其判断正负例
+	par.add_argument("--no_rel_name" 		, type = str , default = "NONE")
 
 	#two-phase training
 	par.add_argument("--binary" 		, action = "store_true" , default = False) # 只训练其判断正负例
@@ -74,16 +74,57 @@ def before_parse_t2g(par):
 	par.add_argument("--no_fitlog" 		, action = "store_true" , default = False) # 不使用fitlog
 	par.add_argument("--no_valid" 		, action = "store_true" , default = False) # 是否使用验证集选择最好的参数来ensemble  
 
-	# for watch
+	#for analyze
 	par.add_argument("--model_save" 	, type = str , default = "") # 保存最终的（ensemble的）模型的文件名
 	par.add_argument("--gene_file" 		, type = str , default = "watch/gene") # 保存生成结果的文件
 	par.add_argument("--watch_type" 	, type = str , default = "test") # 保存生成结果的文件
 	par.add_argument("--model_save_2" 	, type = str , default = "") # 在两阶段生成中保存pos_only模型的文件
 
+	#overall
+	par.add_argument("--auto_hyperparam", action = "store_true" , default = False) # 自动确定合适的超参数
+
 	#---------------------------------------------------------------------------------------------------
 
 
 	return par
+
+def auto_hyperparam(C):
+	if C.dataset == "ace_2005":
+		C.ensemble=1 
+		C.no_rel_name	= "NO_RELATION" 
+		C.gnn  			= True
+		C.matrix_trans  = True
+		C.train_text_1	= "./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bn+nw.json"
+		C.valid_text	= "./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_dev.json"
+		C.test_text		= "./data/ace_2005/ace_05_processed/ace-05-splits/json-pm13/bc_test.json"
+		C.dataset		= "ace_2005"
+		C.gene_in_data 	= True
+		C.valid_metric	= "macro"
+		C.scheduler		= "cosine"
+		C.no_valid 		= True
+		C.loss 			= "loss_1"
+		C.t2g_batch_size= 8 
+		C.t2g_lr 		= 5e-5 
+		C.no_rel_weight = 0.25 
+		C.epoch_numb 	= 30  
+		C.warmup_prop 	= 0.02
+		C.model_save 	= "model_ace.pkl"
+	elif C.dataset == "semeval_2018_task7":
+		C.ensemble 		= 5 
+		C.epoch_numb	= 30 
+		C.no_rel_name 	= "NONE" 
+		C.matrix_trans  = True
+		C.gnn 			= True
+		C.valid_text 	= "./data/semeval_2018_task7/2.test.text.xml"
+		C.valid_rels 	= "./data/semeval_2018_task7/keys.test.2.txt"
+		C.loss 			= "loss_2"
+		C.no_valid 		= True
+		C.warmup_prop 	= 0.1 
+		C.scheduler 	= "cosine"
+		C.t2g_batch_size= 8 
+		C.t2g_lr 		= 1e-4
+		C.model_save 	= "model_semeval.pkl"
+
 
 def after_parse_t2g(C , need_logger = False):
 
@@ -95,14 +136,6 @@ def after_parse_t2g(C , need_logger = False):
 		logger.log = logger.nolog
 
 	C.tmp_file_name = random_tmp_name()
-	
-	#----- do some check -----
-
-	for file in [C.train_text_1 , C.train_rels_1 , C.train_text_2 , C.train_rels_2 , C.test_text , C.test_rels ]:
-		if C.dataset not in file:
-			logger.log('[Warn] Dataset and training files do not match.')
-			#import pdb;pdb.set_trace()
-
 
 	#----- other stuff -----
 
@@ -117,6 +150,10 @@ def after_parse_t2g(C , need_logger = False):
 	logger.log ("------------------------------------------------------")
 
 	C.gpus = list(range(tc.cuda.device_count()))
+
+	if C.auto_hyperparam:
+		auto_hyperparam(C)
+		logger.log("Hyper parameters autoset.")
 
 	#----- initialize -----
 
