@@ -1,8 +1,6 @@
 import time
 import fitlog
 
-#fitlog.commit(__file__)
-
 starttime = time.time()
 
 def now_time():

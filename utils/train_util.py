@@ -1,8 +1,6 @@
 import torch as tc
 import fitlog
 
-#fitlog.commit(__file__)
-
 def pad_sents(sents , pad_idx = 0):
 	max_len = max([len(x) for x in sents])
 	for i in range(len(sents)):

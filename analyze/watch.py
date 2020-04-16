@@ -24,10 +24,6 @@ from utils.composed_model import TwoPhaseModel , EnsembleModel
 
 from main import load_data , initialize
 
-#fitlog.debug()
-#fitlog.commit(__file__)
-
-
 def generate_output(
 		C , logger , 
 		dataset , models , generator 

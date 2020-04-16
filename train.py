@@ -10,8 +10,6 @@ from models import get_model
 from test import test
 from utils.train_util import get_data_from_batch
 
-#fitlog.commit(__file__)
-
 
 def before_train(C , logger , train_data , n_rel_typs):
 

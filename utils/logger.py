@@ -1,15 +1,12 @@
 from .watch_time import time_str
 import fitlog
 
-#fitlog.commit(__file__)
 
 class Logger:
 	def __init__(self , fil_path = None):
 		self.log_fil = open(fil_path , "w" , encoding = "utf-8")
 
 	def nolog(self , cont = ""):
-		#print (cont)
-		#fitlog.add_to_line(cont)
 		pass
 
 	def log_print(self , cont = ""):

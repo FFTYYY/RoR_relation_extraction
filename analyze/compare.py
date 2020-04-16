@@ -20,9 +20,6 @@ import json
 
 from main import load_data , initialize
 
-#fitlog.debug()
-#fitlog.commit(__file__)
-
 
 def compare(
 		C , logger , 

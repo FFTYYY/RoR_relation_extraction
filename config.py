@@ -8,8 +8,6 @@ import numpy as np
 from utils.tmp_file import random_tmp_name
 import fitlog
 
-#fitlog.commit(__file__)
-
 def before_parse_t2g(par):
 
 	#---------------------------------------------------------------------------------------------------

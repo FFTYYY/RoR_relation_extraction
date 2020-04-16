@@ -1,6 +1,3 @@
-'''
-	比较两个模型
-'''
 import torch as tc
 import pdb
 import os , sys
@@ -19,10 +16,6 @@ from config import get_config
 import json
 
 from main import load_data , initialize
-
-#fitlog.debug()
-#fitlog.commit(__file__)
-
 
 def gene( C , logger , dataset , models , generator ):
 	#----- determine some arguments and prepare model -----
