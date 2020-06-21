@@ -85,7 +85,7 @@ def before_parse_t2g(par):
 
 def auto_hyperparam(C):
 	if C.dataset == "ace_2005":
-		C.ensemble=1 
+		C.ensemble 		= 1 
 		C.no_rel_name	= "NO_RELATION" 
 		C.gnn  			= True
 		C.matrix_trans  = True
@@ -119,6 +119,7 @@ def auto_hyperparam(C):
 		C.t2g_batch_size= 8 
 		C.t2g_lr 		= 1e-4
 		C.model_save 	= "model_semeval.pkl"
+	C.no_fitlog = True
 
 
 def after_parse_t2g(C , need_logger = False):
@@ -134,6 +135,10 @@ def after_parse_t2g(C , need_logger = False):
 
 	#----- other stuff -----
 
+	if C.auto_hyperparam:
+		auto_hyperparam(C)
+		logger.log("Hyper parameters autoset.")
+
 	if C.no_fitlog:
 		fitlog.debug()
 
@@ -146,9 +151,6 @@ def after_parse_t2g(C , need_logger = False):
 
 	C.gpus = list(range(tc.cuda.device_count()))
 
-	if C.auto_hyperparam:
-		auto_hyperparam(C)
-		logger.log("Hyper parameters autoset.")
 
 	#----- initialize -----
 
