@@ -4,7 +4,6 @@ import torch.nn.functional as F
 from transformers import BertModel , BertTokenizer
 import pdb
 import math
-from .loss_func import *
 from .graph_encoder import Encoder
 from .matrix_transformer import Encoder as MatTransformer
 
