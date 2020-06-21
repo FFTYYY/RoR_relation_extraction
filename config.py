@@ -120,6 +120,7 @@ def auto_hyperparam(C):
 		C.t2g_lr 		= 1e-4
 		C.model_save 	= "model_semeval.pkl"
 	C.no_fitlog = True
+	fitlog.debug()
 
 
 def after_parse_t2g(C , need_logger = False):
