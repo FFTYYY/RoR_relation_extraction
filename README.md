@@ -17,11 +17,15 @@ This command will also prepare the python environment for you. It will install a
 
 1. ACE2005:
 
-```python main.py --dataset=ace_2005 --auto_hyperparam```
+```
+python main.py --dataset=ace_2005 --auto_hyperparam
+```
 
 2. SemEval2018 Task 7.2:
 
-```python main.py --dataset=semeval_2018_task7 --auto_hyperparam```
+```
+python main.py --dataset=semeval_2018_task7 --auto_hyperparam
+```
 
 ### Outputs
 
